@@ -1,0 +1,1093 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>KIRILMA | Arcade Puzzle</title>
+    <style>
+        :root {
+            --bg-color: #050505;
+            --panel-bg: #111111;
+            --text-main: #eeeeee;
+            --text-muted: #888888;
+            
+            --neon-cyan: #00f3ff;
+            --neon-magenta: #ff00ff;
+            --neon-green: #00ff41;
+            --neon-yellow: #ffee00;
+            --neon-red: #ff3333;
+
+            --tile-size: 56px;
+            --gap: 4px;
+            
+            --font-ui: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+        }
+
+        * { box-sizing: border-box; user-select: none; -webkit-tap-highlight-color: transparent; }
+
+        body {
+            margin: 0;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: var(--font-ui);
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* CRT Scanline Effect */
+        body::after {
+            content: "";
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            background-size: 100% 2px, 3px 100%;
+            pointer-events: none;
+            z-index: 9999;
+        }
+
+        /* Layout Structure */
+        #app {
+            width: 100%;
+            max-width: 900px;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            padding: 10px;
+            position: relative;
+            z-index: 10;
+        }
+
+        /* Header */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #333;
+            margin-bottom: 10px;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 1.5rem;
+            letter-spacing: 2px;
+            text-shadow: 0 0 5px var(--neon-cyan);
+            color: var(--neon-cyan);
+        }
+
+        .level-badge {
+            background: #222;
+            padding: 5px 15px;
+            border-radius: 20px;
+            border: 1px solid var(--neon-magenta);
+            color: var(--neon-magenta);
+            font-weight: bold;
+            box-shadow: 0 0 5px var(--neon-magenta);
+        }
+
+        .icon-btn {
+            background: none;
+            border: 1px solid #444;
+            color: #fff;
+            padding: 8px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .icon-btn:hover { border-color: var(--neon-green); box-shadow: 0 0 8px var(--neon-green); }
+
+        /* Main Game Area */
+        main {
+            flex: 1;
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            align-items: flex-start;
+            overflow: hidden;
+        }
+
+        /* Game Board */
+        #game-board-container {
+            position: relative;
+            padding: 10px;
+            background: #000;
+            border: 2px solid #333;
+            border-radius: 12px;
+            box-shadow: 0 0 15px rgba(0, 243, 255, 0.1);
+            transition: border-color 0.3s;
+        }
+        #game-board-container.theme-neon { border-color: var(--neon-cyan); }
+        #game-board-container.theme-magenta { border-color: var(--neon-magenta); }
+        #game-board-container.theme-green { border-color: var(--neon-green); }
+
+        #grid {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            gap: var(--gap);
+            width: fit-content;
+        }
+
+        .tile {
+            width: var(--tile-size);
+            height: var(--tile-size);
+            background: #222;
+            border-radius: 8px;
+            cursor: pointer;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: transform 0.2s, filter 0.2s;
+            will-change: transform;
+        }
+
+        .tile::before {
+            content: '';
+            display: block;
+            width: 60%;
+            height: 60%;
+            opacity: 0.9;
+        }
+
+        /* Tile Shapes & Colors (Colorblind Friendly) */
+        .tile[data-type="0"] { border: 2px solid var(--neon-red); box-shadow: inset 0 0 5px var(--neon-red); } /* Red Square */
+        .tile[data-type="0"]::before { background: var(--neon-red); clip-path: polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%); }
+
+        .tile[data-type="1"] { border: 2px solid var(--neon-cyan); box-shadow: inset 0 0 5px var(--neon-cyan); } /* Cyan Circle */
+        .tile[data-type="1"]::before { background: var(--neon-cyan); border-radius: 50%; }
+
+        .tile[data-type="2"] { border: 2px solid var(--neon-green); box-shadow: inset 0 0 5px var(--neon-green); } /* Green Triangle */
+        .tile[data-type="2"]::before { background: var(--neon-green); clip-path: polygon(50% 0%, 0% 100%, 100% 100%); }
+
+        .tile[data-type="3"] { border: 2px solid var(--neon-yellow); box-shadow: inset 0 0 5px var(--neon-yellow); } /* Yellow Diamond */
+        .tile[data-type="3"]::before { background: var(--neon-yellow); clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%); }
+
+        .tile[data-type="4"] { border: 2px solid var(--neon-magenta); box-shadow: inset 0 0 5px var(--neon-magenta); } /* Magenta Hex */
+        .tile[data-type="4"]::before { background: var(--neon-magenta); clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%); }
+
+        .tile.selected { transform: scale(0.9); filter: brightness(1.5); box-shadow: 0 0 10px white; z-index: 2; }
+        .tile.matched { animation: pop 0.3s forwards; }
+        .tile.falling { transition: top 0.3s ease-in; }
+        
+        /* Modifiers */
+        .tile.cracked::after {
+            content: ''; position: absolute; top:0; left:0; right:0; bottom:0;
+            background: repeating-linear-gradient(45deg, transparent, transparent 5px, rgba(0,0,0,0.5) 5px, rgba(0,0,0,0.5) 7px);
+            opacity: 0.7; pointer-events: none;
+        }
+
+        /* HUD Panel */
+        #hud {
+            width: 260px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .panel {
+            background: var(--panel-bg);
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 15px;
+            position: relative;
+        }
+
+        .stat-label { font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
+        .stat-value { font-size: 2.5rem; font-weight: 800; color: #fff; line-height: 1; margin-top: 5px; }
+        
+        .twist-panel { border-color: var(--neon-yellow); box-shadow: 0 0 5px rgba(255, 238, 0, 0.2); display: none; }
+        .twist-title { color: var(--neon-yellow); font-weight: bold; margin-bottom: 5px; }
+        .twist-desc { font-size: 0.9rem; line-height: 1.3; }
+
+        .goal-item { display: flex; align-items: center; gap: 10px; margin-top: 5px; font-size: 0.9rem;}
+        .mini-tile { width: 16px; height: 16px; border-radius: 2px; }
+
+        .btn {
+            background: transparent;
+            border: 1px solid var(--neon-cyan);
+            color: var(--neon-cyan);
+            padding: 12px;
+            border-radius: 6px;
+            width: 100%;
+            font-weight: bold;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 1rem;
+            margin-bottom: 8px;
+        }
+        .btn:hover { background: rgba(0, 243, 255, 0.1); box-shadow: 0 0 10px var(--neon-cyan); }
+        .btn.secondary { border-color: #666; color: #aaa; font-size: 0.8rem; padding: 8px; }
+        .btn.secondary:hover { border-color: #fff; color: #fff; box-shadow: none; }
+        
+        .btn-boost { border-color: var(--neon-green); color: var(--neon-green); }
+        .btn-boost:hover { background: rgba(0, 255, 65, 0.1); box-shadow: 0 0 10px var(--neon-green); }
+
+        /* Tokens Display */
+        #token-display {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-weight: bold;
+            color: var(--neon-yellow);
+        }
+        .token-icon { width: 16px; height: 16px; background: var(--neon-yellow); border-radius: 50%; box-shadow: 0 0 5px var(--neon-yellow); }
+
+        /* Overlays */
+        .overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9);
+            backdrop-filter: blur(5px);
+            z-index: 100;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+        }
+        .overlay.active { display: flex; animation: fadeIn 0.3s; }
+        .overlay-content { max-width: 400px; width: 90%; padding: 20px; border: 1px solid #444; border-radius: 12px; background: #0a0a0a; box-shadow: 0 0 20px rgba(0,0,0,0.8); }
+        
+        .overlay h2 { font-size: 2.5rem; margin-bottom: 20px; }
+        .win-title { color: var(--neon-green); text-shadow: 0 0 10px var(--neon-green); }
+        .lose-title { color: var(--neon-red); text-shadow: 0 0 10px var(--neon-red); }
+        
+        /* Boost Drawer */
+        #boost-drawer {
+            position: absolute; top: 0; right: -300px; width: 280px; height: 100%;
+            background: #111; border-left: 2px solid var(--neon-green);
+            z-index: 50; transition: right 0.3s ease;
+            padding: 20px;
+        }
+        #boost-drawer.open { right: 0; box-shadow: -10px 0 30px rgba(0,0,0,0.8); }
+
+        .boost-item {
+            display: flex; flex-direction: column; gap: 5px;
+            padding: 15px; border: 1px solid #333; border-radius: 8px;
+            margin-bottom: 15px; cursor: pointer; transition: 0.2s;
+        }
+        .boost-item:hover { border-color: var(--neon-green); background: #1a1a1a; }
+        .boost-header { display: flex; justify-content: space-between; font-weight: bold; color: var(--neon-green); }
+        .boost-cost { color: var(--neon-yellow); font-size: 0.9rem; }
+        .boost-desc { font-size: 0.8rem; color: #888; }
+
+        /* Bottom Bar */
+        footer {
+            margin-top: auto;
+            width: 100%;
+            padding: 10px;
+            border-top: 1px solid #333;
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8rem;
+            color: #666;
+        }
+
+        /* Animations */
+        @keyframes pop { 0% { transform: scale(1); } 50% { transform: scale(1.2); opacity: 1; } 100% { transform: scale(0); opacity: 0; } }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes floatUp { 0% { transform: translateY(0); opacity: 1; } 100% { transform: translateY(-30px); opacity: 0; } }
+        
+        .float-text {
+            position: absolute;
+            color: #fff;
+            font-weight: bold;
+            font-size: 1.2rem;
+            pointer-events: none;
+            animation: floatUp 0.8s forwards;
+            z-index: 20;
+            text-shadow: 0 0 3px black;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            :root { --tile-size: 11vw; --gap: 2px; }
+            main { flex-direction: column; align-items: center; }
+            #hud { width: 100%; flex-direction: row; flex-wrap: wrap; gap: 5px; }
+            .panel { flex: 1; padding: 10px; min-width: 100px; }
+            .btn { font-size: 0.9rem; padding: 8px; }
+            #boost-drawer { width: 80%; }
+            h1 { font-size: 1.2rem; }
+        }
+
+    </style>
+</head>
+<body>
+
+<div id="app">
+    <header>
+        <h1>KIRILMA</h1>
+        <div class="level-badge" id="level-display">LEVEL 1</div>
+        <div style="display:flex; gap:10px; align-items: center;">
+            <div id="token-display"><div class="token-icon"></div> <span id="token-count">0</span></div>
+            <button class="icon-btn" onclick="Game.ui.toggleSettings()">⚙️</button>
+        </div>
+    </header>
+
+    <main>
+        <div id="game-board-container">
+            <div id="grid"></div>
+        </div>
+
+        <div id="hud">
+            <div class="panel">
+                <div class="stat-label">Moves</div>
+                <div class="stat-value" id="moves-display">20</div>
+            </div>
+            
+            <div class="panel">
+                <div class="stat-label">Goal</div>
+                <div id="goal-container"></div>
+                <div class="stat-label" style="margin-top:10px">Score</div>
+                <div class="stat-value" style="font-size: 1.5rem" id="score-display">0</div>
+            </div>
+
+            <div class="panel twist-panel" id="twist-panel">
+                <div class="twist-title">⚠ RULE TWIST</div>
+                <div class="twist-desc" id="twist-desc">...</div>
+            </div>
+
+            <div style="flex-basis: 100%; display: flex; gap: 5px; flex-direction: column;">
+                <button class="btn btn-boost" onclick="Game.ui.toggleBoostDrawer()">⚡ BOOST</button>
+                <button class="btn secondary" onclick="Game.logic.pauseGame()">PAUSE</button>
+                <button class="btn secondary" onclick="Game.logic.restartLevel()">RESTART</button>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <button class="icon-btn" id="sound-toggle" style="border:none; padding:0" onclick="Game.audio.toggle()">🔊</button>
+        <span id="tip-text">Match 4 for a time bonus!</span>
+        <button class="icon-btn" style="border:none; padding:0" onclick="Game.ui.showHelp()">Help ?</button>
+    </footer>
+
+    <!-- Boost Drawer -->
+    <div id="boost-drawer">
+        <h3 style="color:var(--neon-green); margin-top:0">BOOSTERS</h3>
+        <button class="btn secondary" onclick="Game.ui.toggleBoostDrawer()" style="margin-bottom:20px">CLOSE &times;</button>
+        
+        <div class="boost-item" onclick="Game.logic.useBooster('move')">
+            <div class="boost-header"><span>+5 MOVES</span> <span class="boost-cost">10 <span class="token-icon" style="display:inline-block; width:10px; height:10px;"></span></span></div>
+            <div class="boost-desc">Add 5 extra moves to current count.</div>
+        </div>
+        
+        <div class="boost-item" onclick="Game.logic.useBooster('shuffle')">
+            <div class="boost-header"><span>SHUFFLE</span> <span class="boost-cost">15 <span class="token-icon" style="display:inline-block; width:10px; height:10px;"></span></span></div>
+            <div class="boost-desc">Rearrange the entire board.</div>
+        </div>
+        
+        <div class="boost-item" onclick="Game.logic.useBooster('smash')">
+            <div class="boost-header"><span>COLOR SMASH</span> <span class="boost-cost">25 <span class="token-icon" style="display:inline-block; width:10px; height:10px;"></span></span></div>
+            <div class="boost-desc">Remove all RED tiles instantly.</div>
+        </div>
+    </div>
+</div>
+
+<!-- Overlays -->
+<div id="overlay-main" class="overlay">
+    <div class="overlay-content">
+        <h2 id="overlay-title">LEVEL CLEAR</h2>
+        <p id="overlay-msg"></p>
+        <div id="overlay-buttons"></div>
+    </div>
+</div>
+
+<div id="overlay-settings" class="overlay">
+    <div class="overlay-content">
+        <h2>SETTINGS</h2>
+        <button class="btn" onclick="Game.ui.toggleTheme()">Toggle Frame Color</button>
+        <button class="btn" onclick="Game.data.resetProgress(); location.reload()">Reset Progress</button>
+        <button class="btn secondary" onclick="document.getElementById('overlay-settings').classList.remove('active')">CLOSE</button>
+    </div>
+</div>
+
+<script>
+/**
+ * KIRILMA - Game Logic
+ */
+
+const CONSTANTS = {
+    ROWS: 8,
+    COLS: 8,
+    COLORS: ['#ff3333', '#00f3ff', '#00ff41', '#ffee00', '#ff00ff'],
+    TYPES: [0, 1, 2, 3, 4], // Red, Cyan, Green, Yellow, Magenta
+    ANIM_DURATION: 300
+};
+
+const TWISTS = {
+    NONE: null,
+    BLUE_PHANTOM: { id: 'BLUE_PHANTOM', desc: "Blue tiles (Circle) do not count towards goals." },
+    ANTI_GRAVITY: { id: 'ANTI_GRAVITY', desc: "No Gravity: Cleared spaces refill randomly." },
+    CRACKED_HULL: { id: 'CRACKED_HULL', desc: "Tiles are toughened. Match twice to clear." },
+    CONTAINMENT: { id: 'CONTAINMENT', desc: "Board shrunk to 6x6." },
+    SPECTRUM_BAN: { id: 'SPECTRUM_BAN', desc: "Yellow tiles are banned from spawning." },
+    STICKY_CORE: { id: 'STICKY_CORE', desc: "Sticky Row: The middle row does not fall." }
+};
+
+class GameData {
+    constructor() {
+        this.level = 1;
+        this.tokens = 50;
+        this.settings = { sound: true, themeIdx: 0 };
+        this.themes = ['theme-neon', 'theme-magenta', 'theme-green'];
+        this.load();
+    }
+
+    load() {
+        const saved = localStorage.getItem('kirilma_save');
+        if (saved) {
+            const parsed = JSON.parse(saved);
+            this.level = parsed.level || 1;
+            this.tokens = parsed.tokens || 50;
+            if(parsed.settings) this.settings = parsed.settings;
+        }
+    }
+
+    save() {
+        localStorage.setItem('kirilma_save', JSON.stringify({
+            level: this.level,
+            tokens: this.tokens,
+            settings: this.settings
+        }));
+    }
+
+    resetProgress() {
+        localStorage.removeItem('kirilma_save');
+    }
+}
+
+class AudioController {
+    constructor() {
+        this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+        this.enabled = true;
+    }
+
+    toggle() {
+        this.enabled = !this.enabled;
+        document.getElementById('sound-toggle').textContent = this.enabled ? '🔊' : '🔇';
+    }
+
+    playTone(freq, type, duration) {
+        if (!this.enabled) return;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+        gain.gain.setValueAtTime(0.1, this.ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start();
+        osc.stop(this.ctx.currentTime + duration);
+    }
+
+    playPop() { this.playTone(400 + Math.random() * 200, 'sine', 0.1); }
+    playMatch() { 
+        this.playTone(600, 'square', 0.1); 
+        setTimeout(() => this.playTone(800, 'square', 0.1), 100);
+    }
+    playError() { this.playTone(150, 'sawtooth', 0.3); }
+    playWin() { 
+        [440, 554, 659, 880].forEach((f, i) => setTimeout(() => this.playTone(f, 'triangle', 0.2), i*100));
+    }
+}
+
+class GameLogic {
+    constructor() {
+        this.grid = []; // 2D array
+        this.selectedTile = null;
+        this.isProcessing = false;
+        this.score = 0;
+        this.moves = 0;
+        this.goals = {};
+        this.currentTwist = null;
+        this.boardSize = 8; // Default
+        this.bannedColor = -1; // Default none
+    }
+
+    // --- Core Game Loop ---
+
+    initLevel(levelNum) {
+        // 1. Setup Level config
+        this.score = 0;
+        this.moves = Math.max(15, 30 - Math.floor(levelNum / 2)); // Harder levels fewer moves
+        this.goals = this.generateGoals(levelNum);
+        this.currentTwist = this.getTwistForLevel(levelNum);
+        
+        // Twist: Containment (Shrink board)
+        this.boardSize = (this.currentTwist === TWISTS.CONTAINMENT) ? 6 : 8;
+        
+        // Twist: Spectrum Ban
+        this.bannedColor = (this.currentTwist === TWISTS.SPECTRUM_BAN) ? 3 : -1; // Ban Yellow (3)
+
+        // 2. UI Updates
+        Game.ui.updateLevelInfo(levelNum, this.moves, this.goals, this.currentTwist);
+        Game.ui.closeOverlays();
+        
+        // 3. Grid Generation
+        this.createGrid();
+        
+        // 4. Initial check (no pre-matched)
+        this.resolveMatches(true); // Silent resolve
+    }
+
+    getTwistForLevel(lvl) {
+        if (lvl < 5) return TWISTS.NONE;
+        if (lvl >= 5 && lvl < 10) return TWISTS.BLUE_PHANTOM;
+        if (lvl >= 10 && lvl < 15) return TWISTS.ANTI_GRAVITY;
+        if (lvl >= 15 && lvl < 20) return TWISTS.CRACKED_HULL;
+        if (lvl >= 20 && lvl < 25) return TWISTS.CONTAINMENT;
+        if (lvl >= 25 && lvl < 30) return TWISTS.SPECTRUM_BAN;
+        if (lvl >= 30) return TWISTS.STICKY_CORE;
+        return TWISTS.NONE;
+    }
+
+    generateGoals(lvl) {
+        // Simple procedural generation
+        const targetScore = lvl * 1000;
+        const colorTarget = 10 + Math.floor(lvl * 1.5);
+        
+        // Alternating goal types
+        if (lvl % 3 === 0) return { score: targetScore };
+        if (lvl % 3 === 1) return { color: 0, count: colorTarget }; // Red
+        return { color: 2, count: colorTarget }; // Green
+    }
+
+    createGrid() {
+        const gridEl = document.getElementById('grid');
+        gridEl.innerHTML = '';
+        gridEl.style.gridTemplateColumns = `repeat(${this.boardSize}, 1fr)`;
+        this.grid = [];
+
+        for (let r = 0; r < this.boardSize; r++) {
+            this.grid[r] = [];
+            for (let c = 0; c < this.boardSize; c++) {
+                this.grid[r][c] = this.spawnTileData(r, c);
+                this.createTileDOM(r, c);
+            }
+        }
+    }
+
+    spawnTileData(r, c) {
+        let type;
+        do {
+            type = Math.floor(Math.random() * 5);
+        } while (type === this.bannedColor);
+
+        return {
+            type: type,
+            r: r, 
+            c: c,
+            el: null, // DOM reference
+            cracked: (this.currentTwist === TWISTS.CRACKED_HULL) ? true : false
+        };
+    }
+
+    createTileDOM(r, c) {
+        const data = this.grid[r][c];
+        const tile = document.createElement('div');
+        tile.className = 'tile';
+        tile.dataset.type = data.type;
+        tile.dataset.r = r;
+        tile.dataset.c = c;
+        
+        if (data.cracked) tile.classList.add('cracked');
+
+        tile.onclick = () => this.handleTileClick(r, c);
+        
+        document.getElementById('grid').appendChild(tile);
+        data.el = tile;
+    }
+
+    // --- Interaction ---
+
+    handleTileClick(r, c) {
+        if (this.isProcessing) return;
+        
+        const clickedData = this.grid[r][c];
+
+        if (!this.selectedTile) {
+            // Select first
+            this.selectedTile = clickedData;
+            this.selectedTile.el.classList.add('selected');
+            Game.audio.playPop();
+        } else {
+            const prev = this.selectedTile;
+            this.selectedTile.el.classList.remove('selected');
+            this.selectedTile = null;
+
+            if (prev === clickedData) return; // Deselect
+
+            // Check adjacency
+            if (Math.abs(prev.r - r) + Math.abs(prev.c - c) === 1) {
+                this.swapTiles(prev, clickedData);
+            } else {
+                // Select new
+                this.selectedTile = clickedData;
+                this.selectedTile.el.classList.add('selected');
+                Game.audio.playPop();
+            }
+        }
+    }
+
+    async swapTiles(t1, t2) {
+        this.isProcessing = true;
+        
+        // 1. Visual Swap
+        // We cheat slightly: swap DOM content/attributes instead of complex FLIP animation for pure vanilla simplicity
+        // But to make it look nice, we assume they are neighbors.
+        
+        // Swap Data in Grid
+        this.grid[t1.r][t1.c] = t2;
+        this.grid[t2.r][t2.c] = t1;
+        
+        // Swap Coordinates in Objects
+        const tempR = t1.r, tempC = t1.c;
+        t1.r = t2.r; t1.c = t2.c;
+        t2.r = tempR; t2.c = tempC;
+
+        // Visual update (re-render specific cells)
+        this.updateTileVisuals(t1);
+        this.updateTileVisuals(t2);
+
+        await this.wait(200);
+
+        // 2. Check Match
+        const matches = this.findMatches();
+        
+        if (matches.length > 0) {
+            this.moves--;
+            Game.ui.updateHUD();
+            await this.resolveMatches(false, matches);
+        } else {
+            // Revert
+            Game.audio.playError();
+            // Swap Data Back
+            this.grid[t1.r][t1.c] = t2;
+            this.grid[t2.r][t2.c] = t1;
+            t1.r = t2.r; t1.c = t2.c;
+            t2.r = tempR; t2.c = tempC; // Fix logic error here in swap back
+            // Correct coords for t2 which is now at t1's old spot
+            const r1 = t1.r; const c1 = t1.c;
+            t1.r = t2.r; t1.c = t2.c;
+            t2.r = r1; t2.c = c1;
+
+            this.updateTileVisuals(t1);
+            this.updateTileVisuals(t2);
+            this.isProcessing = false;
+        }
+    }
+
+    updateTileVisuals(tileData) {
+        // Brute force DOM update ensures sync
+        const el = tileData.el;
+        // In a true grid layout, order matters. 
+        // We will just swap the dataset and inner styles, keeping the DOM element node in place?
+        // No, let's swap the DOM elements in the container to maintain Flex order?
+        // Actually, CSS Grid handles position based on order. Let's just re-append everything or use specific slots?
+        // Simpler: Just update the properties of the DOM element at the specific grid index.
+        
+        // Actually, let's just re-render the whole board for safety? No, too slow.
+        // We just need to swap the nodes in the DOM tree.
+        // Or simpler: Don't swap nodes. Swap attributes.
+        // tileData.el is a reference. 
+        
+        // Implementation: We won't animate the swap with transform translate for MVP robustness.
+        // We will just swap the visual properties.
+        el.dataset.type = tileData.type;
+        el.className = 'tile';
+        if (tileData.cracked) el.classList.add('cracked');
+        
+        // Re-inject shape
+        // (CSS handles shape based on data-type)
+    }
+
+    // --- Matching Logic ---
+
+    findMatches() {
+        const matches = new Set();
+        
+        // Horizontal
+        for (let r = 0; r < this.boardSize; r++) {
+            for (let c = 0; c < this.boardSize - 2; c++) {
+                const type = this.grid[r][c].type;
+                if (type === this.grid[r][c+1].type && type === this.grid[r][c+2].type) {
+                    matches.add(this.grid[r][c]);
+                    matches.add(this.grid[r][c+1]);
+                    matches.add(this.grid[r][c+2]);
+                }
+            }
+        }
+        
+        // Vertical
+        for (let c = 0; c < this.boardSize; c++) {
+            for (let r = 0; r < this.boardSize - 2; r++) {
+                const type = this.grid[r][c].type;
+                if (type === this.grid[r+1][c].type && type === this.grid[r+2][c].type) {
+                    matches.add(this.grid[r][c]);
+                    matches.add(this.grid[r+1][c]);
+                    matches.add(this.grid[r+2][c]);
+                }
+            }
+        }
+        return Array.from(matches);
+    }
+
+    async resolveMatches(silent = false, initialMatches = null) {
+        let matches = initialMatches || this.findMatches();
+        let cascadeCount = 0;
+
+        while (matches.length > 0) {
+            cascadeCount++;
+            if (!silent) {
+                Game.audio.playMatch();
+                if(cascadeCount > 1) this.showFloatText("CASCADE!", matches[0].el);
+            }
+
+            // 1. Process Logic (Scores, Goals)
+            let tilesToRemove = [];
+            
+            for (let t of matches) {
+                // Twist: Blue Phantom
+                if (this.currentTwist === TWISTS.BLUE_PHANTOM && t.type === 1) {
+                    // It clears but gives no score/goal
+                } else if (!silent) {
+                    this.score += 10 * cascadeCount;
+                    if (this.goals.color !== undefined && this.goals.color === t.type) {
+                        this.goals.count = Math.max(0, this.goals.count - 1);
+                    }
+                }
+
+                // Twist: Cracked Hull
+                if (this.currentTwist === TWISTS.CRACKED_HULL && t.cracked && !silent) {
+                    t.cracked = false;
+                    this.updateTileVisuals(t); // Remove cracked visual
+                    // Do NOT add to tilesToRemove
+                } else {
+                    tilesToRemove.push(t);
+                }
+            }
+
+            // 2. Remove Tiles (Visual Pop)
+            if (!silent) {
+                tilesToRemove.forEach(t => t.el.classList.add('matched'));
+                await this.wait(300);
+            }
+
+            // 3. Update Grid Data (Set to null)
+            tilesToRemove.forEach(t => {
+                this.grid[t.r][t.c] = null;
+                // Re-create element for future use, or handle in gravity
+                t.el.remove(); // Remove DOM
+            });
+
+            // 4. Gravity / Refill
+            await this.applyGravity();
+
+            // 5. Check Next Round
+            matches = this.findMatches();
+            if (!silent) Game.ui.updateHUD();
+        }
+
+        this.isProcessing = false;
+        if (!silent) this.checkGameState();
+    }
+
+    async applyGravity() {
+        // Twist: Anti-Gravity
+        if (this.currentTwist === TWISTS.ANTI_GRAVITY) {
+            // Just fill empty spots randomly
+            for (let r = 0; r < this.boardSize; r++) {
+                for (let c = 0; c < this.boardSize; c++) {
+                    if (this.grid[r][c] === null) {
+                        const newData = this.spawnTileData(r, c);
+                        this.grid[r][c] = newData;
+                        this.createTileDOM(r, c);
+                        // Force DOM to correct position (flex order/grid flow handles this if we append in order, 
+                        // but since we have holes, we need to rebuild DOM or use replace)
+                    }
+                }
+            }
+            // Simple rebuild DOM to ensure order
+            const container = document.getElementById('grid');
+            container.innerHTML = '';
+            for (let r = 0; r < this.boardSize; r++) {
+                for (let c = 0; c < this.boardSize; c++) {
+                    const t = this.grid[r][c];
+                    // Update DOM ref just in case
+                    const tile = document.createElement('div');
+                    tile.className = 'tile';
+                    if(t.cracked) tile.classList.add('cracked');
+                    tile.dataset.type = t.type;
+                    tile.onclick = () => this.handleTileClick(r, c);
+                    t.el = tile;
+                    container.appendChild(tile);
+                }
+            }
+            await this.wait(100);
+            return;
+        }
+
+        // Standard Gravity + Sticky Core
+        for (let c = 0; c < this.boardSize; c++) {
+            let emptySlots = 0;
+            // Scan from bottom to top
+            for (let r = this.boardSize - 1; r >= 0; r--) {
+                
+                // Twist: Sticky Core (Rows 3 and 4 are indices 3 and 4)
+                // If Sticky, we treat top and bottom halves as separate gravity wells
+                if (this.currentTwist === TWISTS.STICKY_CORE) {
+                     if (r === 3 || r === 4) {
+                         // These rows don't fall. If they are null, they get filled immediately.
+                         if (this.grid[r][c] === null) {
+                             this.grid[r][c] = this.spawnTileData(r, c);
+                         }
+                         continue; // Don't let things fall through
+                     }
+                }
+
+                if (this.grid[r][c] === null) {
+                    emptySlots++;
+                } else if (emptySlots > 0) {
+                    // Move tile down
+                    const tile = this.grid[r][c];
+                    this.grid[r + emptySlots][c] = tile;
+                    tile.r = r + emptySlots;
+                    this.grid[r][c] = null;
+                }
+            }
+
+            // Fill top spaces
+            for (let r = 0; r < emptySlots; r++) {
+                // Adjust for Sticky Core splitting board
+                let spawnRow = r; 
+                // In sticky core, if we are below row 4, we only fill up to row 5. 
+                // (Logic simplified: standard gravity fill from top is fine, standard logic handles it naturally 
+                // because sticky rows were skipped and not counted as empty slots for things above to fall into)
+                
+                this.grid[spawnRow][c] = this.spawnTileData(spawnRow, c);
+            }
+        }
+
+        // Rebuild DOM (easiest way to sync visual state after complex gravity)
+        const container = document.getElementById('grid');
+        container.innerHTML = '';
+        for (let r = 0; r < this.boardSize; r++) {
+            for (let c = 0; c < this.boardSize; c++) {
+                const t = this.grid[r][c];
+                const tile = document.createElement('div');
+                tile.className = 'tile';
+                tile.dataset.type = t.type;
+                if(t.cracked) tile.classList.add('cracked');
+                tile.onclick = () => this.handleTileClick(r, c);
+                t.el = tile;
+                container.appendChild(tile);
+            }
+        }
+        await this.wait(100);
+    }
+
+    // --- Win/Loss ---
+
+    checkGameState() {
+        let won = false;
+        
+        // Check Goals
+        if (this.goals.score && this.score >= this.goals.score) won = true;
+        if (this.goals.color !== undefined && this.goals.count <= 0) won = true;
+
+        if (won) {
+            Game.audio.playWin();
+            Game.ui.showLevelComplete();
+            return;
+        }
+
+        if (this.moves <= 0) {
+            Game.ui.showGameOver();
+        }
+    }
+
+    useBooster(type) {
+        if (this.isProcessing) return;
+        
+        const costs = { move: 10, shuffle: 15, smash: 25 };
+        if (Game.data.tokens < costs[type]) {
+            alert("Not enough tokens!");
+            return;
+        }
+
+        Game.data.tokens -= costs[type];
+        Game.data.save();
+        Game.ui.updateHUD();
+        Game.ui.toggleBoostDrawer(); // Close
+
+        if (type === 'move') {
+            this.moves += 5;
+            this.showFloatText("+5 MOVES", document.getElementById('moves-display'));
+        } else if (type === 'shuffle') {
+            this.createGrid();
+            this.resolveMatches(true);
+            this.showFloatText("SHUFFLED", document.getElementById('grid'));
+        } else if (type === 'smash') {
+            // Remove all Red (0)
+            for(let r=0; r<this.boardSize; r++){
+                for(let c=0; c<this.boardSize; c++){
+                    if(this.grid[r][c].type === 0) {
+                        this.grid[r][c] = null;
+                        this.score += 50;
+                    }
+                }
+            }
+            this.applyGravity().then(() => this.resolveMatches());
+        }
+        Game.ui.updateHUD();
+    }
+
+    // Helpers
+    wait(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
+    
+    showFloatText(text, targetEl) {
+        const rect = targetEl.getBoundingClientRect();
+        const float = document.createElement('div');
+        float.className = 'float-text';
+        float.textContent = text;
+        float.style.left = rect.left + 'px';
+        float.style.top = rect.top + 'px';
+        document.body.appendChild(float);
+        setTimeout(() => float.remove(), 800);
+    }
+    
+    pauseGame() {
+        alert("GAME PAUSED");
+    }
+    
+    restartLevel() {
+        this.initLevel(Game.data.level);
+    }
+}
+
+class UIManager {
+    constructor() {
+        this.overlayMain = document.getElementById('overlay-main');
+        this.boostDrawer = document.getElementById('boost-drawer');
+    }
+
+    updateLevelInfo(lvl, moves, goal, twist) {
+        document.getElementById('level-display').textContent = 'LEVEL ' + lvl;
+        document.getElementById('moves-display').textContent = moves;
+        document.getElementById('score-display').textContent = '0';
+        document.getElementById('token-count').textContent = Game.data.tokens;
+        
+        // Goal
+        const goalContainer = document.getElementById('goal-container');
+        goalContainer.innerHTML = '';
+        if (goal.score) {
+            goalContainer.innerHTML = `<div>Score ${goal.score}</div>`;
+        } else {
+            goalContainer.innerHTML = `
+                <div class="goal-item">
+                    <div class="tile mini-tile" data-type="${goal.color}">
+                        <div style="background:${CONSTANTS.COLORS[goal.color]}; width:100%; height:100%; clip-path:inherit"></div>
+                    </div>
+                    <span>x ${goal.count}</span>
+                </div>`;
+        }
+
+        // Twist
+        const twistPanel = document.getElementById('twist-panel');
+        if (twist) {
+            twistPanel.style.display = 'block';
+            document.getElementById('twist-desc').textContent = twist.desc;
+        } else {
+            twistPanel.style.display = 'none';
+        }
+    }
+
+    updateHUD() {
+        document.getElementById('moves-display').textContent = Game.logic.moves;
+        document.getElementById('score-display').textContent = Game.logic.score;
+        document.getElementById('token-count').textContent = Game.data.tokens;
+        
+        const goal = Game.logic.goals;
+        if (goal.color !== undefined) {
+             document.querySelector('.goal-item span').textContent = `x ${goal.count}`;
+        }
+    }
+
+    showLevelComplete() {
+        this.overlayMain.classList.add('active');
+        document.getElementById('overlay-title').textContent = "LEVEL CLEAR";
+        document.getElementById('overlay-title').className = "win-title";
+        document.getElementById('overlay-msg').textContent = "Great job! +10 Tokens";
+        
+        Game.data.tokens += 10;
+        Game.data.level++;
+        Game.data.save();
+
+        document.getElementById('overlay-buttons').innerHTML = `
+            <button class="btn" onclick="Game.logic.initLevel(${Game.data.level})">NEXT LEVEL</button>
+        `;
+    }
+
+    showGameOver() {
+        this.overlayMain.classList.add('active');
+        document.getElementById('overlay-title').textContent = "OUT OF MOVES";
+        document.getElementById('overlay-title').className = "lose-title";
+        document.getElementById('overlay-msg').textContent = "Don't give up!";
+        
+        document.getElementById('overlay-buttons').innerHTML = `
+            <button class="btn btn-boost" onclick="Game.logic.useBooster('move'); Game.ui.closeOverlays()">+5 MOVES (10 Tokens)</button>
+            <button class="btn" onclick="Game.logic.initLevel(${Game.data.level})">TRY AGAIN</button>
+        `;
+    }
+
+    closeOverlays() {
+        this.overlayMain.classList.remove('active');
+    }
+
+    toggleBoostDrawer() {
+        this.boostDrawer.classList.toggle('open');
+    }
+
+    toggleSettings() {
+        document.getElementById('overlay-settings').classList.add('active');
+    }
+    
+    showHelp() {
+        alert("Match 3 of same color.\nMatch 4+ for bonuses.\nComplete goals to win.");
+    }
+
+    toggleTheme() {
+        const board = document.getElementById('game-board-container');
+        Game.data.settings.themeIdx = (Game.data.settings.themeIdx + 1) % Game.data.themes.length;
+        // Reset classes
+        board.classList.remove('theme-neon', 'theme-magenta', 'theme-green');
+        board.classList.add(Game.data.themes[Game.data.settings.themeIdx]);
+        Game.data.save();
+    }
+}
+
+// --- Main Bootstrap ---
+const Game = {
+    data: new GameData(),
+    audio: new AudioController(),
+    logic: new GameLogic(),
+    ui: new UIManager()
+};
+
+// Initialize
+window.onload = () => {
+    // Apply saved theme
+    const board = document.getElementById('game-board-container');
+    board.classList.add(Game.data.themes[Game.data.settings.themeIdx]);
+    
+    // Start Level
+    Game.logic.initLevel(Game.data.level);
+};
+
+</script>
+</body>
+</html>
