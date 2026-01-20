@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>KIRILMA | League Edition</title>
+    <title>KIRILMA | Saga Edition</title>
     <style>
         :root {
             --bg-color: #2b1d38;
@@ -44,11 +44,72 @@
             height: 100%;
             display: flex;
             flex-direction: column;
-            padding: 10px;
             position: relative;
             z-index: 10;
         }
 
+        /* SCREENS */
+        .screen {
+            position: absolute; top:0; left:0; width:100%; height:100%;
+            display: flex; flex-direction: column;
+            background: radial-gradient(circle at center, #3c2a4d 0%, #1a1025 100%);
+            transition: transform 0.3s ease-in-out;
+        }
+        .screen.hidden { transform: translateX(100%); pointer-events: none; z-index: 0; }
+        .screen.active { transform: translateX(0); z-index: 10; }
+
+        /* --- MAP SCREEN STYLES --- */
+        #screen-map { overflow-y: auto; padding: 20px 0; align-items: center; }
+        .map-header { 
+            position: sticky; top: 0; z-index: 20; width: 100%; 
+            background: rgba(43, 29, 56, 0.95); backdrop-filter: blur(10px);
+            padding: 15px; border-bottom: 1px solid rgba(255,255,255,0.1);
+            display: flex; justify-content: space-between; align-items: center;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+        }
+        .total-stars { font-size: 1.2rem; color: #ffd700; font-weight: bold; display: flex; align-items: center; gap: 5px; }
+
+        .map-path {
+            display: flex; flex-direction: column-reverse; /* Bottom to top */
+            gap: 40px; padding: 40px 20px; align-items: center; width: 100%;
+            position: relative;
+        }
+        
+        /* Level Node */
+        .level-node {
+            width: 80px; height: 80px;
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            border-radius: 50%;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            position: relative;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.4), inset 0 0 10px rgba(255,255,255,0.3);
+            border: 3px solid rgba(255,255,255,0.2);
+            cursor: pointer; transition: transform 0.2s;
+            z-index: 2;
+        }
+        .level-node:active { transform: scale(0.9); }
+        .level-node.locked {
+            background: #444; border-color: #666; cursor: default; filter: grayscale(1);
+        }
+        .level-number { font-size: 1.5rem; font-weight: 900; color: #fff; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
+        .node-stars {
+            position: absolute; bottom: -25px; left: 50%; transform: translateX(-50%);
+            display: flex; gap: 2px;
+            background: rgba(0,0,0,0.6); padding: 2px 8px; border-radius: 10px;
+        }
+        .star { font-size: 14px; color: #444; }
+        .star.earned { color: #ffd700; text-shadow: 0 0 5px #ffaa00; }
+        .lock-icon { font-size: 1.5rem; color: #888; }
+
+        /* Path Line (SVG or Pseudo) */
+        .map-path::before {
+            content: ''; position: absolute; top: 20px; bottom: 20px; width: 4px; background: rgba(255,255,255,0.1); z-index: 0;
+        }
+
+
+        /* --- GAME SCREEN STYLES (Existing + Tweaks) --- */
+        #screen-game { padding: 10px; }
+        
         /* Header */
         header {
             display: flex;
@@ -62,148 +123,70 @@
             border: 1px solid rgba(255,255,255,0.1);
         }
 
-        h1 {
-            margin: 0;
-            font-size: 1.8rem;
-            font-weight: 800;
-            background: linear-gradient(to bottom, #fff, #ffd1ff);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
-            letter-spacing: 1px;
-        }
-
-        .level-badge {
-            background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 99%, #fecfef 100%);
-            color: #d63384;
-            padding: 5px 15px;
-            font-weight: bold;
-            border-radius: 20px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
-            font-size: 0.9rem;
-            text-transform: uppercase;
-        }
+        h1 { margin: 0; font-size: 1.5rem; font-weight: 800; background: linear-gradient(to bottom, #fff, #ffd1ff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .level-badge { background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 99%, #fecfef 100%); color: #d63384; padding: 5px 15px; font-weight: bold; border-radius: 20px; font-size: 0.9rem; text-transform: uppercase; }
 
         .icon-btn {
-            background: rgba(255,255,255,0.1);
-            border: 1px solid rgba(255,255,255,0.2);
-            color: #fff;
-            padding: 8px;
-            border-radius: 50%;
-            cursor: pointer;
-            transition: all 0.2s;
-            width: 36px; height: 36px;
-            display: flex; align-items: center; justify-content: center;
+            background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #fff;
+            padding: 8px; border-radius: 50%; cursor: pointer; transition: all 0.2s;
+            width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;
         }
-        .icon-btn:active { transform: scale(0.9); background: rgba(255,255,255,0.2); }
+        .icon-btn:active { transform: scale(0.9); }
 
-        /* Main Game Area */
-        main {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 15px;
-            overflow: hidden;
-        }
-
-        /* Game Board */
-        #game-board-container {
-            position: relative;
-            padding: 10px;
-            background: rgba(0, 0, 0, 0.4);
-            border-radius: 16px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5), inset 0 0 20px rgba(0,0,0,0.5);
-            border: 2px solid rgba(255,255,255,0.05);
-        }
-
-        #grid {
-            display: grid;
-            grid-template-columns: repeat(8, 1fr);
-            gap: var(--gap);
-            width: fit-content;
-            touch-action: none;
-        }
+        /* Game Board & HUD */
+        main { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 10px; overflow: hidden; }
+        #game-board-container { position: relative; padding: 10px; background: rgba(0, 0, 0, 0.4); border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); border: 2px solid rgba(255,255,255,0.05); }
+        #grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: var(--gap); width: fit-content; touch-action: none; }
         
-        /* Cells & Layers */
         .cell { width: var(--tile-size); height: var(--tile-size); position: relative; background: rgba(0,0,0,0.2); border-radius: 8px; }
         .crack-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border-radius: 8px; pointer-events: none; z-index: 0; opacity: 0.8; transition: all 0.3s; }
-        .crack-layer.lvl-1 { background: rgba(255, 255, 255, 0.15); box-shadow: inset 0 0 10px rgba(255,255,255,0.3); border: 1px dashed rgba(255,255,255,0.3); }
-        .crack-layer.lvl-2 { background: rgba(255, 255, 255, 0.3); box-shadow: inset 0 0 15px rgba(255,255,255,0.5); border: 2px solid rgba(255,255,255,0.4); }
-        .crack-layer::after { content: ''; position: absolute; top:0; left:0; right:0; bottom:0; background-image: repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,0.2) 10px, rgba(255,255,255,0.2) 12px); opacity: 0; }
-        .crack-layer.lvl-1::after { opacity: 0.3; } .crack-layer.lvl-2::after { opacity: 0.6; }
+        .crack-layer.lvl-1 { background: rgba(255, 255, 255, 0.15); border: 1px dashed rgba(255,255,255,0.3); }
+        .crack-layer.lvl-2 { background: rgba(255, 255, 255, 0.3); border: 2px solid rgba(255,255,255,0.4); }
 
-        /* Tiles */
         .tile { width: 100%; height: 100%; position: relative; z-index: 1; cursor: pointer; display: flex; justify-content: center; align-items: center; transition: transform 0.2s; filter: drop-shadow(0px 4px 3px rgba(0,0,0,0.4)); }
         .tile::before { content: ''; position: absolute; width: 90%; height: 90%; border-radius: inherit; box-shadow: inset 0px -4px 6px rgba(0,0,0,0.3), inset 2px 2px 5px rgba(255,255,255,0.6); z-index: 1; }
-        .tile::after { content: ''; position: absolute; top: 20%; left: 20%; width: 25%; height: 15%; background: linear-gradient(to bottom, rgba(255,255,255,0.8), rgba(255,255,255,0.1)); border-radius: 50%; transform: rotate(-45deg); pointer-events: none; z-index: 2; }
         .tile[data-type="0"]::before { background: radial-gradient(circle at 35% 35%, #ff758c, #d6334c); border-radius: 40% 40% 45% 45% / 55% 55% 40% 40%; }
         .tile[data-type="1"]::before { background: radial-gradient(circle at 30% 30%, #4facfe, #00f2fe); border-radius: 50%; }
         .tile[data-type="2"]::before { background: radial-gradient(circle at 30% 30%, #a8e063, #56ab2f); border-radius: 12px; }
-        .tile[data-type="3"]::before { background: radial-gradient(circle at 40% 40%, #fff200, #ffc300); border-radius: 50%; clip-path: ellipse(45% 50% at 50% 50%); } .tile[data-type="3"]::after { top: 25%; left: 25%; }
-        .tile[data-type="4"]::before { background: radial-gradient(circle at 30% 30%, #cd93ff, #6a11cb); border-radius: 50%; border: 4px solid rgba(255,255,255,0.2); box-sizing: border-box; }
+        .tile[data-type="3"]::before { background: radial-gradient(circle at 40% 40%, #fff200, #ffc300); border-radius: 50%; clip-path: ellipse(45% 50% at 50% 50%); }
+        .tile[data-type="4"]::before { background: radial-gradient(circle at 30% 30%, #cd93ff, #6a11cb); border-radius: 50%; border: 4px solid rgba(255,255,255,0.2); }
         .tile.selected { transform: scale(1.15); filter: drop-shadow(0 0 10px gold); z-index: 10; }
         .tile.matched { animation: pop 0.3s forwards; }
         
-        /* HUD Panel */
         #hud { width: 100%; display: flex; justify-content: space-between; gap: 10px; padding: 0 5px; }
-        .panel { flex: 1; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 8px; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; backdrop-filter: blur(5px); min-height: 80px; }
-        .stat-label { font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px; margin-bottom: 5px; }
-        .stat-value { font-size: 1.4rem; font-weight: 800; color: #fff; text-shadow: 0 2px 4px rgba(0,0,0,0.3); }
+        .panel { flex: 1; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 5px; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; backdrop-filter: blur(5px); min-height: 70px; }
+        .stat-label { font-size: 0.6rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600; margin-bottom: 2px; }
+        .stat-value { font-size: 1.2rem; font-weight: 800; color: #fff; }
         
-        /* Goal Styles */
-        #goal-container { display: flex; flex-direction: column; gap: 5px; width: 100%; }
-        .goal-item { display: flex; align-items: center; justify-content: space-between; font-size: 0.9rem; font-weight: bold; width: 100%; background: rgba(0,0,0,0.2); padding: 4px 8px; border-radius: 6px; }
-        .goal-item.done { opacity: 0.5; text-decoration: line-through; color: #a8e063; }
-        .mini-tile { width: 16px; height: 16px; border-radius: 50%; box-shadow: inset -1px -1px 3px rgba(0,0,0,0.3); display: inline-block;}
-        .crack-icon { width: 16px; height: 16px; background: rgba(255,255,255,0.5); border: 1px dashed #fff; transform: rotate(45deg); }
+        #goal-container { display: flex; flex-direction: column; gap: 3px; width: 100%; }
+        .goal-item { display: flex; align-items: center; justify-content: space-between; font-size: 0.8rem; font-weight: bold; width: 100%; background: rgba(0,0,0,0.2); padding: 3px 6px; border-radius: 6px; }
+        .goal-item.done { opacity: 0.5; color: #a8e063; }
+        .mini-tile { width: 14px; height: 14px; border-radius: 50%; display: inline-block;}
+        .crack-icon { width: 14px; height: 14px; background: rgba(255,255,255,0.5); border: 1px dashed #fff; transform: rotate(45deg); }
 
-        .btn { background: linear-gradient(to bottom, #4facfe 0%, #00f2fe 100%); border: none; color: #fff; padding: 12px; width: 100%; font-weight: bold; text-transform: uppercase; cursor: pointer; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.2); font-size: 0.9rem; transition: transform 0.1s; }
+        .btn { background: linear-gradient(to bottom, #4facfe 0%, #00f2fe 100%); border: none; color: #fff; padding: 12px; width: 100%; font-weight: bold; text-transform: uppercase; cursor: pointer; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.2); font-size: 0.9rem; }
         .btn:active { transform: scale(0.98); }
         .btn-boost { background: linear-gradient(to bottom, #f093fb 0%, #f5576c 100%); }
-        .btn-secondary { background: rgba(255,255,255,0.1); font-size: 0.8rem; padding: 10px; border: 1px solid rgba(255,255,255,0.1);}
+        .btn-secondary { background: rgba(255,255,255,0.1); font-size: 0.8rem; padding: 10px; }
+        .btn-map { background: linear-gradient(to bottom, #ffd700 0%, #ffaa00 100%); color: #444; }
 
-        /* LEAGUE & LEADERBOARD STYLES */
-        #league-overlay .overlay-content { padding: 0; overflow: hidden; height: 70vh; display: flex; flex-direction: column; background: #2b1d38; }
-        .league-header { padding: 20px; text-align: center; background: rgba(0,0,0,0.3); border-bottom: 1px solid rgba(255,255,255,0.1); }
-        .league-title { font-size: 1.5rem; margin: 0; font-weight: 900; color: #fff; text-shadow: 0 2px 5px rgba(0,0,0,0.5); }
-        .league-subtitle { font-size: 0.8rem; color: var(--text-muted); margin-top: 5px; }
-        
-        .league-badge { display: inline-block; padding: 5px 15px; border-radius: 20px; font-size: 0.8rem; font-weight: bold; margin-top: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.5); text-transform: uppercase;}
-        .badge-bronze { background: var(--league-bronze); color: #fff; }
-        .badge-silver { background: linear-gradient(135deg, #e0e0e0 0%, #c0c0c0 100%); color: #444; }
-        .badge-gold { background: linear-gradient(135deg, #ffd700 0%, #ffaa00 100%); color: #444; }
-        .badge-crystal { background: linear-gradient(135deg, #00ffff 0%, #0099ff 100%); color: #000; box-shadow: 0 0 15px var(--league-crystal); }
-
-        .leaderboard-list { flex: 1; overflow-y: auto; padding: 10px; }
-        .leaderboard-item { display: flex; align-items: center; justify-content: space-between; padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.05); }
-        .lb-rank { width: 30px; font-weight: bold; color: #888; text-align: center; }
-        .lb-rank-1 { color: #ffd700; font-size: 1.2rem; }
-        .lb-rank-2 { color: #c0c0c0; font-size: 1.1rem; }
-        .lb-rank-3 { color: #cd7f32; font-size: 1.1rem; }
-        
-        .lb-user { flex: 1; padding-left: 10px; display: flex; flex-direction: column; }
-        .lb-name { font-weight: bold; font-size: 0.9rem; }
-        .lb-score { font-weight: bold; color: #a8e063; font-size: 0.9rem; }
-
-        .lb-profile-row { background: rgba(79, 172, 254, 0.2); border-top: 1px solid rgba(255,255,255,0.2); padding: 15px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 -5px 15px rgba(0,0,0,0.3); }
-        .lb-profile-info { display: flex; align-items: center; gap: 10px; }
-
-        /* Overlays & Drawers */
+        /* Overlays */
         .overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(20, 10, 30, 0.95); backdrop-filter: blur(8px); z-index: 100; display: none; flex-direction: column; justify-content: center; align-items: center; text-align: center; }
         .overlay.active { display: flex; animation: fadeIn 0.3s; }
         .overlay-content { width: 85%; padding: 25px; background: linear-gradient(135deg, #2b1d38, #1a1025); border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.6); }
-        .overlay h2 { font-size: 2.2rem; margin-bottom: 15px; margin-top:0; }
-        .win-title { background: linear-gradient(to right, #a8e063, #56ab2f); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        .lose-title { background: linear-gradient(to right, #ff758c, #d6334c); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .overlay h2 { font-size: 2.2rem; margin-bottom: 10px; margin-top:0; }
         
+        .stars-container { display: flex; justify-content: center; gap: 10px; margin-bottom: 20px; font-size: 3rem; color: #444; }
+        .stars-container span.earned { color: #ffd700; text-shadow: 0 0 15px #ffaa00; animation: pop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+
+        /* Boost Drawer */
         #boost-drawer { position: absolute; bottom: -350px; left: 0; width: 100%; height: auto; background: #251830; border-top: 2px solid rgba(255,255,255,0.1); border-radius: 20px 20px 0 0; z-index: 50; transition: bottom 0.3s; padding: 20px; box-shadow: 0 -10px 40px rgba(0,0,0,0.6); }
         #boost-drawer.open { bottom: 0; }
         .boost-item { display: flex; justify-content: space-between; align-items: center; padding: 12px; border-radius: 10px; background: rgba(255,255,255,0.05); margin-bottom: 10px; cursor: pointer; }
 
+        /* Misc */
         #token-display { display: flex; align-items: center; gap: 6px; font-weight: bold; color: #ffd700; background: rgba(0,0,0,0.3); padding: 5px 10px; border-radius: 15px; }
         .token-icon { width: 14px; height: 14px; background: #ffd700; border-radius: 50%; box-shadow: inset -2px -2px 5px rgba(0,0,0,0.4); border: 1px solid #fff; }
-
         footer { margin-top: auto; width: 100%; padding: 10px; display: flex; justify-content: space-between; font-size: 0.8rem; color: rgba(255,255,255,0.5); }
         
         @keyframes pop { 0% { transform: scale(1); } 50% { transform: scale(1.3); opacity: 1; } 100% { transform: scale(0); opacity: 0; } }
@@ -215,55 +198,79 @@
             :root { --tile-size: 11.5vw; --gap: 3px; }
             #hud { padding: 0; }
         }
+        
+        /* League Overlay Styles (from previous) */
+        #league-overlay .overlay-content { padding: 0; overflow: hidden; height: 70vh; display: flex; flex-direction: column; background: #2b1d38; }
+        .league-header { padding: 20px; text-align: center; background: rgba(0,0,0,0.3); border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .league-title { font-size: 1.5rem; margin: 0; font-weight: 900; color: #fff; }
+        .league-badge { display: inline-block; padding: 5px 15px; border-radius: 20px; font-size: 0.8rem; font-weight: bold; margin-top: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.5); }
+        .badge-bronze { background: #cd7f32; color: #fff; } .badge-silver { background: #c0c0c0; color: #444; } .badge-gold { background: #ffd700; color: #444; } .badge-crystal { background: #00ffff; color: #000; }
+        .leaderboard-list { flex: 1; overflow-y: auto; padding: 10px; }
+        .leaderboard-item { display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .lb-profile-row { background: rgba(79, 172, 254, 0.2); padding: 15px; display: flex; justify-content: space-between; }
     </style>
 </head>
 <body>
 
 <div id="app">
-    <header>
-        <h1>KIRILMA</h1>
-        <div class="level-badge" id="level-display">SEVİYE 1</div>
-        <div style="display:flex; gap:8px; align-items: center;">
-            <div id="token-display"><div class="token-icon"></div> <span id="token-count">0</span></div>
-            <!-- League Button -->
+    <!-- MAP SCREEN (Main Hub) -->
+    <div id="screen-map" class="screen active">
+        <div class="map-header">
+            <h1 style="font-size:1.2rem;">HARİTA</h1>
+            <div class="total-stars">★ <span id="map-total-stars">0</span></div>
             <button class="icon-btn" style="background: rgba(255, 215, 0, 0.2); border-color: #ffd700;" onclick="Game.league.openLeague()">🏆</button>
-            <button class="icon-btn" onclick="Game.ui.toggleSettings()">⚙️</button>
         </div>
-    </header>
+        
+        <div class="map-path" id="map-nodes-container">
+            <!-- Nodes will be generated here -->
+        </div>
+    </div>
 
-    <main>
-        <div id="hud">
-            <div class="panel" style="flex: 0.6;">
-                <div class="stat-label">HAMLE</div>
-                <div class="stat-value" id="moves-display">20</div>
+    <!-- GAME SCREEN -->
+    <div id="screen-game" class="screen hidden">
+        <header>
+            <button class="icon-btn" onclick="Game.ui.showMap()">⬅</button>
+            <div class="level-badge" id="level-display">SEVİYE 1</div>
+            <div style="display:flex; gap:8px; align-items: center;">
+                <div id="token-display"><div class="token-icon"></div> <span id="token-count">0</span></div>
+                <button class="icon-btn" onclick="Game.ui.toggleSettings()">⚙️</button>
             </div>
-            
-            <div class="panel" style="flex: 1.4; align-items: stretch;">
-                <div class="stat-label" style="text-align: center;">HEDEFLER</div>
-                <div id="goal-container"></div>
+        </header>
+
+        <main>
+            <div id="hud">
+                <div class="panel" style="flex: 0.6;">
+                    <div class="stat-label">HAMLE</div>
+                    <div class="stat-value" id="moves-display">20</div>
+                </div>
+                
+                <div class="panel" style="flex: 1.4; align-items: stretch;">
+                    <div class="stat-label" style="text-align: center;">HEDEFLER</div>
+                    <div id="goal-container"></div>
+                </div>
+
+                <div class="panel" style="flex: 0.8;">
+                    <div class="stat-label">PUAN</div>
+                    <div class="stat-value" style="font-size: 1.1rem" id="score-display">0</div>
+                </div>
             </div>
 
-            <div class="panel" style="flex: 0.8;">
-                <div class="stat-label">PUAN</div>
-                <div class="stat-value" style="font-size: 1.1rem" id="score-display">0</div>
+            <div id="game-board-container">
+                <div id="grid"></div>
             </div>
-        </div>
 
-        <div id="game-board-container">
-            <div id="grid"></div>
-        </div>
+            <div style="width:100%; display: flex; gap: 10px; margin-top: 5px; padding: 0 5px;">
+                <button class="btn btn-boost" onclick="Game.ui.toggleBoostDrawer()">⚡ MARKET</button>
+                <button class="btn btn-secondary" style="width: 80px;" onclick="Game.logic.initLevel(Game.data.currentLevel)">↺</button>
+            </div>
+        </main>
 
-        <div style="width:100%; display: flex; gap: 10px; margin-top: 5px; padding: 0 5px;">
-            <button class="btn btn-boost" onclick="Game.ui.toggleBoostDrawer()">⚡ MARKET</button>
-            <button class="btn btn-secondary" style="width: 80px;" onclick="Game.logic.restartLevel()">↺</button>
-        </div>
-    </main>
-
-    <footer>
-        <button class="icon-btn" id="sound-toggle" style="background:none; border:none;" onclick="Game.audio.toggle()">🔊</button>
-        <span id="tip-text" style="color: rgba(255,255,255,0.4)">Kaydırarak Eşleştir</span>
-        <button class="icon-btn" style="background:none; border:none;" onclick="Game.ui.showHelp()">?</button>
-    </footer>
+        <footer>
+            <button class="icon-btn" id="sound-toggle" style="background:none; border:none;" onclick="Game.audio.toggle()">🔊</button>
+            <span id="tip-text" style="color: rgba(255,255,255,0.4)">Kaydırarak Eşleştir</span>
+            <button class="icon-btn" style="background:none; border:none;" onclick="Game.ui.showHelp()">?</button>
+        </footer>
+    </div>
 
     <!-- Boost Drawer -->
     <div id="boost-drawer">
@@ -276,7 +283,7 @@
     </div>
 </div>
 
-<!-- LEAGUE OVERLAY (NEW) -->
+<!-- LEAGUE OVERLAY -->
 <div id="overlay-league" class="overlay">
     <div class="overlay-content">
         <div class="league-header">
@@ -284,22 +291,11 @@
             <div class="league-subtitle" id="week-display">Hafta 1</div>
             <div id="league-tier-badge" class="league-badge badge-bronze">BRONZ LİG</div>
         </div>
-        
-        <div class="leaderboard-list" id="lb-list">
-            <!-- Mock Items -->
-        </div>
-
+        <div class="leaderboard-list" id="lb-list"></div>
         <div class="lb-profile-row">
-            <div class="lb-profile-info">
-                <div style="font-size:1.5rem">👤</div>
-                <div>
-                    <div style="font-weight:bold; font-size:0.9rem">SEN</div>
-                    <div style="color:#a8e063; font-size:0.8rem" id="my-weekly-score">0 Puan</div>
-                </div>
-            </div>
-            <div style="font-size:1.2rem; font-weight:bold" id="my-rank">#--</div>
+            <div><b>SEN</b> <span id="my-weekly-score" style="color:#a8e063">0</span></div>
+            <div id="my-rank">#--</div>
         </div>
-        
         <div style="padding:15px; display:flex; gap:10px; background:#2b1d38">
              <button class="btn btn-secondary" onclick="Game.league.renderLeaderboard()">YENİLE</button>
              <button class="btn" onclick="document.getElementById('overlay-league').classList.remove('active')">KAPAT</button>
@@ -307,10 +303,13 @@
     </div>
 </div>
 
-<!-- Overlays -->
+<!-- Win/Lose Overlays -->
 <div id="overlay-main" class="overlay">
     <div class="overlay-content">
         <h2 id="overlay-title">BAŞARDIN!</h2>
+        <div class="stars-container" id="win-stars">
+            <span>★</span><span>★</span><span>★</span>
+        </div>
         <p id="overlay-msg" style="margin-bottom:25px; font-size:1.1rem; color:#dccae8;"></p>
         <div id="overlay-buttons" style="display:flex; flex-direction:column; gap:10px;"></div>
     </div>
@@ -327,159 +326,90 @@
 <script>
 const CONSTANTS = { ROWS: 8, COLS: 8, COLORS: ['#ff758c', '#4facfe', '#a8e063', '#fff200', '#cd93ff'], TYPES: [0, 1, 2, 3, 4] };
 
+// Level Configs now include "starThreshold" (Score needed for 3 stars)
+// Heuristic: 1 star = Win, 2 star = 70% threshold, 3 star = 100% threshold
 const LEVELS = {
-    1: { moves: 20, goals: [{ type: 'score', amount: 1000 }] },
-    2: { moves: 25, goals: [{ type: 'collect', colorId: 0, amount: 15 }] },
-    3: { moves: 30, goals: [{ type: 'cracks', amount: 8 }], layout: { cracks: [{r:3, c:3, lvl:2}, {r:3, c:4, lvl:2}, {r:4, c:3, lvl:2}, {r:4, c:4, lvl:2}, {r:2, c:2, lvl:1}, {r:2, c:5, lvl:1}, {r:5, c:2, lvl:1}, {r:5, c:5, lvl:1}] } },
-    4: { moves: 35, goals: [{ type: 'score', amount: 3000 }, { type: 'collect', colorId: 1, amount: 20 }, { type: 'cracks', amount: 10 }], layout: { cracks: (() => { let arr = []; for(let c=0; c<8; c++) { arr.push({r:7, c:c, lvl:2}); arr.push({r:6, c:c, lvl:1}); } return arr; })() } }
+    1: { moves: 20, goals: [{ type: 'score', amount: 1000 }], starScore: 2000 },
+    2: { moves: 25, goals: [{ type: 'collect', colorId: 0, amount: 15 }], starScore: 3000 },
+    3: { moves: 30, goals: [{ type: 'cracks', amount: 8 }], layout: { cracks: [{r:3, c:3, lvl:2}, {r:3, c:4, lvl:2}, {r:4, c:3, lvl:2}, {r:4, c:4, lvl:2}, {r:2, c:2, lvl:1}, {r:2, c:5, lvl:1}, {r:5, c:2, lvl:1}, {r:5, c:5, lvl:1}] }, starScore: 4000 },
+    4: { moves: 35, goals: [{ type: 'score', amount: 3000 }, { type: 'collect', colorId: 1, amount: 20 }, { type: 'cracks', amount: 10 }], layout: { cracks: (() => { let arr = []; for(let c=0; c<8; c++) { arr.push({r:7, c:c, lvl:2}); arr.push({r:6, c:c, lvl:1}); } return arr; })() }, starScore: 6000 }
 };
-
-// --- LEAGUE SYSTEM ---
-class LeagueManager {
-    constructor(data) {
-        this.data = data;
-        this.tiers = [
-            { name: 'BRONZ', min: 0, class: 'badge-bronze' },
-            { name: 'GÜMÜŞ', min: 5000, class: 'badge-silver' },
-            { name: 'ALTIN', min: 15000, class: 'badge-gold' },
-            { name: 'KRİSTAL', min: 30000, class: 'badge-crystal' }
-        ];
-        // Mock Names for Leaderboard
-        this.bots = ["CandyKing", "PuzzlePro", "SweetTooth", "BuzKıran", "JellyBean", "StarPlayer", "ŞanslıKedi", "NeonRider", "HexMaster"];
-    }
-
-    getCurrentTier() {
-        // Find highest tier where score >= min
-        let t = this.tiers[0];
-        for(let i=0; i<this.tiers.length; i++) {
-            if(this.data.weeklyScore >= this.tiers[i].min) t = this.tiers[i];
-        }
-        return t;
-    }
-
-    checkWeeklyReset() {
-        const now = new Date();
-        const weekId = `${now.getFullYear()}-W${this.getWeekNumber(now)}`;
-        
-        if (this.data.currentWeekId !== weekId) {
-            console.log("Haftalık Reset!");
-            this.data.weeklyScore = 0; // Reset score
-            this.data.currentWeekId = weekId;
-            this.data.save();
-            alert("Yeni Hafta Başladı! Lig skorları sıfırlandı.");
-        }
-    }
-
-    getWeekNumber(d) {
-        d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
-        d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay()||7));
-        var yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
-        return Math.ceil((((d - yearStart) / 86400000) + 1)/7);
-    }
-
-    addScore(points) {
-        this.data.weeklyScore += points;
-        this.data.save();
-    }
-
-    openLeague() {
-        this.checkWeeklyReset();
-        this.renderLeaderboard();
-        document.getElementById('overlay-league').classList.add('active');
-    }
-
-    renderLeaderboard() {
-        const currentTier = this.getCurrentTier();
-        
-        // Update UI Header
-        document.getElementById('week-display').textContent = this.data.currentWeekId;
-        const badgeEl = document.getElementById('league-tier-badge');
-        badgeEl.className = `league-badge ${currentTier.class}`;
-        badgeEl.textContent = `${currentTier.name} LİGİ`;
-        
-        document.getElementById('my-weekly-score').textContent = this.data.weeklyScore + " Puan";
-
-        // Generate Mock Data + User
-        let leaderboard = [];
-        
-        // Add User
-        leaderboard.push({ name: "SEN", score: this.data.weeklyScore, isMe: true });
-
-        // Add Bots (with dynamic scores based on tier to make it competitive)
-        this.bots.forEach((name, idx) => {
-            // Random score around user score or tier baseline
-            let base = currentTier.min;
-            if(base === 0) base = 1000;
-            
-            // Random variance
-            let score = Math.floor(base * (0.5 + Math.random() * 1.5));
-            // Make top 3 very high
-            if(idx < 3) score += Math.floor(Math.random() * 5000);
-            
-            leaderboard.push({ name: name, score: score, isMe: false });
-        });
-
-        // Sort descending
-        leaderboard.sort((a, b) => b.score - a.score);
-
-        // Render List
-        const listEl = document.getElementById('lb-list');
-        listEl.innerHTML = '';
-        
-        let myRank = "-";
-
-        leaderboard.forEach((p, idx) => {
-            const rank = idx + 1;
-            if(p.isMe) myRank = rank;
-
-            const div = document.createElement('div');
-            div.className = 'leaderboard-item';
-            if(p.isMe) div.style.background = "rgba(79, 172, 254, 0.1)";
-
-            let rankClass = "lb-rank";
-            if(rank === 1) rankClass += " lb-rank-1";
-            else if(rank === 2) rankClass += " lb-rank-2";
-            else if(rank === 3) rankClass += " lb-rank-3";
-
-            div.innerHTML = `
-                <div class="${rankClass}">#${rank}</div>
-                <div class="lb-user">
-                    <div class="lb-name">${p.name}</div>
-                </div>
-                <div class="lb-score">${p.score}</div>
-            `;
-            listEl.appendChild(div);
-        });
-
-        document.getElementById('my-rank').textContent = "#" + myRank;
-    }
-}
 
 class GameData {
     constructor() {
-        this.level = 1;
+        this.currentLevel = 1; // Level currently being played
+        this.maxLevel = 1;     // Highest unlocked level
+        this.levelStars = {};  // Map { 1: 3, 2: 1 }
         this.tokens = 50;
         this.weeklyScore = 0;
         this.currentWeekId = "";
         this.load();
     }
     load() {
-        const saved = localStorage.getItem('kirilma_league_save');
+        const saved = localStorage.getItem('kirilma_saga_save');
         if (saved) {
             const parsed = JSON.parse(saved);
-            this.level = parsed.level || 1;
+            this.maxLevel = parsed.maxLevel || 1;
+            this.levelStars = parsed.levelStars || {};
             this.tokens = parsed.tokens || 50;
             this.weeklyScore = parsed.weeklyScore || 0;
             this.currentWeekId = parsed.currentWeekId || "";
         }
     }
     save() {
-        localStorage.setItem('kirilma_league_save', JSON.stringify({
-            level: this.level, tokens: this.tokens,
-            weeklyScore: this.weeklyScore, currentWeekId: this.currentWeekId
+        localStorage.setItem('kirilma_saga_save', JSON.stringify({
+            maxLevel: this.maxLevel,
+            levelStars: this.levelStars,
+            tokens: this.tokens,
+            weeklyScore: this.weeklyScore,
+            currentWeekId: this.currentWeekId
         }));
     }
-    resetProgress() { localStorage.removeItem('kirilma_league_save'); }
+    resetProgress() { localStorage.removeItem('kirilma_saga_save'); }
+    
+    getTotalStars() {
+        return Object.values(this.levelStars).reduce((a, b) => a + b, 0);
+    }
+}
+
+class MapManager {
+    constructor(data) {
+        this.data = data;
+        this.container = document.getElementById('map-nodes-container');
+    }
+
+    render() {
+        this.container.innerHTML = '';
+        const totalLevels = 20; // Show 20 nodes for now
+
+        // Create nodes
+        for (let i = 1; i <= totalLevels; i++) {
+            const node = document.createElement('div');
+            node.className = 'level-node';
+            
+            // Locked State
+            if (i > this.data.maxLevel) {
+                node.classList.add('locked');
+                node.innerHTML = `<div class="lock-icon">🔒</div>`;
+            } else {
+                // Unlocked
+                const stars = this.data.levelStars[i] || 0;
+                let starHtml = '';
+                for(let s=0; s<3; s++) starHtml += `<span class="star ${s < stars ? 'earned' : ''}">★</span>`;
+                
+                node.innerHTML = `
+                    <div class="level-number">${i}</div>
+                    <div class="node-stars">${starHtml}</div>
+                `;
+                node.onclick = () => {
+                    Game.ui.showGame(i);
+                };
+            }
+            this.container.appendChild(node);
+        }
+        
+        document.getElementById('map-total-stars').textContent = this.data.getTotalStars();
+    }
 }
 
 class AudioController {
@@ -499,9 +429,11 @@ class GameLogic {
     }
 
     initLevel(levelNum) {
+        Game.data.currentLevel = levelNum;
         const config = LEVELS[levelNum] || this.generateRandomLevel(levelNum);
         this.score = 0; this.moves = config.moves;
         this.activeGoals = config.goals.map((g, idx) => ({ ...g, current: g.amount, id: idx }));
+        this.targetStarScore = config.starScore || (levelNum * 2000);
         
         this.cellGrid = [];
         for(let r=0; r<CONSTANTS.ROWS; r++) { this.cellGrid[r] = []; for(let c=0; c<CONSTANTS.COLS; c++) { this.cellGrid[r][c] = { crackLevel: 0, el: null }; } }
@@ -512,7 +444,7 @@ class GameLogic {
         this.createGrid(); this.resolveMatches(true);
     }
 
-    generateRandomLevel(lvl) { return { moves: 20 + Math.floor(lvl/2), goals: [ { type: 'score', amount: lvl * 1500 }, { type: 'collect', colorId: Math.floor(Math.random()*5), amount: 15 + lvl } ] }; }
+    generateRandomLevel(lvl) { return { moves: 20 + Math.floor(lvl/2), goals: [ { type: 'score', amount: lvl * 1500 }, { type: 'collect', colorId: Math.floor(Math.random()*5), amount: 15 + lvl } ], starScore: lvl * 2000 }; }
 
     createGrid() {
         const gridEl = document.getElementById('grid'); gridEl.innerHTML = ''; gridEl.style.gridTemplateColumns = `repeat(${CONSTANTS.COLS}, 1fr)`; this.grid = [];
@@ -610,7 +542,16 @@ class GameLogic {
 
     checkGameState() {
         const allMet = this.activeGoals.every(g => g.isMet);
-        if (allMet) { Game.audio.playWin(); Game.ui.showLevelComplete(); } 
+        if (allMet) { 
+            // Calculate Stars
+            const ratio = this.score / this.targetStarScore;
+            let stars = 1;
+            if (ratio >= 0.8) stars = 2;
+            if (ratio >= 1.0) stars = 3;
+            
+            Game.audio.playWin(); 
+            Game.ui.showLevelComplete(stars); 
+        } 
         else if (this.moves <= 0) Game.ui.showGameOver();
     }
 
@@ -620,12 +561,27 @@ class GameLogic {
         if(type === 'move') this.moves += 5;
         Game.ui.updateHUD(); Game.ui.toggleBoostDrawer();
     }
-    
-    restartLevel() { this.initLevel(Game.data.level); }
 }
 
 class UIManager {
     constructor() { this.overlayMain = document.getElementById('overlay-main'); this.boostDrawer = document.getElementById('boost-drawer'); }
+    
+    showMap() {
+        document.getElementById('screen-game').classList.remove('active');
+        document.getElementById('screen-game').classList.add('hidden');
+        document.getElementById('screen-map').classList.remove('hidden');
+        document.getElementById('screen-map').classList.add('active');
+        Game.map.render();
+    }
+
+    showGame(level) {
+        document.getElementById('screen-map').classList.remove('active');
+        document.getElementById('screen-map').classList.add('hidden');
+        document.getElementById('screen-game').classList.remove('hidden');
+        document.getElementById('screen-game').classList.add('active');
+        Game.logic.initLevel(level);
+    }
+
     updateLevelInfo(lvl, moves, goals) { document.getElementById('level-display').textContent = 'SEVİYE ' + lvl; document.getElementById('moves-display').textContent = moves; document.getElementById('score-display').textContent = '0'; document.getElementById('token-count').textContent = Game.data.tokens; this.renderGoals(goals); }
     renderGoals(goals) {
         const container = document.getElementById('goal-container'); container.innerHTML = '';
@@ -645,27 +601,81 @@ class UIManager {
     }
     showFloatText(text, el) { if(!el) return; const rect = el.getBoundingClientRect(); const float = document.createElement('div'); float.className = 'float-text'; float.textContent = text; float.style.left = rect.left + 'px'; float.style.top = rect.top + 'px'; document.body.appendChild(float); setTimeout(() => float.remove(), 800); }
     
-    showLevelComplete() {
-        // LEAGUE INTEGRATION: Add score to league on win
+    showLevelComplete(stars) {
         Game.league.addScore(Game.logic.score);
         
+        // Save Progress
+        if (Game.data.currentLevel === Game.data.maxLevel) {
+            Game.data.maxLevel++;
+        }
+        const prevStars = Game.data.levelStars[Game.data.currentLevel] || 0;
+        if (stars > prevStars) {
+            Game.data.levelStars[Game.data.currentLevel] = stars;
+        }
+        Game.data.tokens += 10;
+        Game.data.save();
+
         this.overlayMain.classList.add('active');
         document.getElementById('overlay-title').textContent = "BAŞARDIN!";
         document.getElementById('overlay-title').className = "win-title";
         document.getElementById('overlay-msg').textContent = `+10 Jeton & +${Game.logic.score} Lig Puanı`;
-        Game.data.tokens += 10; Game.data.level++; Game.data.save();
-        document.getElementById('overlay-buttons').innerHTML = `<button class="btn" onclick="Game.logic.initLevel(${Game.data.level})">DEVAM ET</button>`;
+        
+        // Star Animation
+        const starContainer = document.getElementById('win-stars');
+        starContainer.innerHTML = '';
+        for(let i=0; i<3; i++) {
+            const sp = document.createElement('span');
+            sp.textContent = '★';
+            sp.style.animationDelay = `${i * 0.2}s`;
+            if (i < stars) sp.className = 'earned';
+            starContainer.appendChild(sp);
+        }
+
+        document.getElementById('overlay-buttons').innerHTML = `
+            <button class="btn" onclick="Game.ui.showGame(${Game.data.currentLevel + 1})">SONRAKİ SEVİYE</button>
+            <button class="btn btn-map" onclick="Game.ui.closeOverlays(); Game.ui.showMap()">HARİTA</button>
+        `;
     }
 
     showGameOver() {
         this.overlayMain.classList.add('active'); document.getElementById('overlay-title').textContent = "BİTTİ!"; document.getElementById('overlay-title').className = "lose-title"; document.getElementById('overlay-msg').textContent = "";
-        document.getElementById('overlay-buttons').innerHTML = `<button class="btn btn-boost" onclick="Game.logic.moves+=5; Game.ui.closeOverlays();">+5 HAMLE (10 Jeton)</button><button class="btn btn-secondary" onclick="Game.logic.restartLevel()">TEKRAR DENE</button>`;
+        document.getElementById('win-stars').innerHTML = '';
+        document.getElementById('overlay-buttons').innerHTML = `
+            <button class="btn btn-boost" onclick="Game.logic.moves+=5; Game.ui.closeOverlays();">+5 HAMLE (10 Jeton)</button>
+            <button class="btn btn-secondary" onclick="Game.logic.initLevel(Game.data.currentLevel)">TEKRAR DENE</button>
+            <button class="btn btn-map" onclick="Game.ui.closeOverlays(); Game.ui.showMap()">ÇIKIŞ</button>
+        `;
     }
 
     closeOverlays() { this.overlayMain.classList.remove('active'); }
     toggleBoostDrawer() { this.boostDrawer.classList.toggle('open'); }
     toggleSettings() { document.getElementById('overlay-settings').classList.add('active'); }
     showHelp() { alert("Hedefleri tamamla!\nBuz kırmak için üstünde eşleştirme yap."); }
+}
+
+class LeagueManager {
+    constructor(data) { this.data = data; this.tiers = [{ name: 'BRONZ', min: 0, class: 'badge-bronze' }, { name: 'GÜMÜŞ', min: 5000, class: 'badge-silver' }, { name: 'ALTIN', min: 15000, class: 'badge-gold' }, { name: 'KRİSTAL', min: 30000, class: 'badge-crystal' }]; this.bots = ["CandyKing", "PuzzlePro", "SweetTooth", "BuzKıran", "JellyBean"]; }
+    getCurrentTier() { let t = this.tiers[0]; for(let i=0; i<this.tiers.length; i++) if(this.data.weeklyScore >= this.tiers[i].min) t = this.tiers[i]; return t; }
+    checkWeeklyReset() { const now = new Date(); const weekId = `${now.getFullYear()}-W${Math.ceil((((new Date(Date.UTC(now.getFullYear(),now.getMonth(),now.getDate())) - new Date(Date.UTC(now.getUTCFullYear(),0,1))) / 86400000) + 1)/7)}`; if (this.data.currentWeekId !== weekId) { this.data.weeklyScore = 0; this.data.currentWeekId = weekId; this.data.save(); } }
+    addScore(points) { this.data.weeklyScore += points; this.data.save(); }
+    openLeague() { this.checkWeeklyReset(); this.renderLeaderboard(); document.getElementById('overlay-league').classList.add('active'); }
+    renderLeaderboard() {
+        const currentTier = this.getCurrentTier();
+        document.getElementById('week-display').textContent = this.data.currentWeekId;
+        const badgeEl = document.getElementById('league-tier-badge'); badgeEl.className = `league-badge ${currentTier.class}`; badgeEl.textContent = `${currentTier.name} LİGİ`;
+        document.getElementById('my-weekly-score').textContent = this.data.weeklyScore + " Puan";
+        let leaderboard = []; leaderboard.push({ name: "SEN", score: this.data.weeklyScore, isMe: true });
+        this.bots.forEach((name, idx) => { let base = currentTier.min || 1000; leaderboard.push({ name: name, score: Math.floor(base * (0.5 + Math.random() * 1.5)) + (idx < 2 ? 2000 : 0), isMe: false }); });
+        leaderboard.sort((a, b) => b.score - a.score);
+        const listEl = document.getElementById('lb-list'); listEl.innerHTML = ''; let myRank = "-";
+        leaderboard.forEach((p, idx) => {
+            if(p.isMe) myRank = idx + 1;
+            const div = document.createElement('div'); div.className = 'leaderboard-item';
+            div.innerHTML = `<div style="width:30px; text-align:center; color:${idx<3?'#ffd700':'#888'}">#${idx+1}</div><div style="flex:1; padding-left:10px">${p.name}</div><div>${p.score}</div>`;
+            listEl.appendChild(div);
+        });
+        document.getElementById('my-rank').textContent = "#" + myRank;
+    }
 }
 
 class InputController {
@@ -690,11 +700,12 @@ const Game = {
     audio: new AudioController(), 
     logic: new GameLogic(), 
     ui: new UIManager(),
-    league: new LeagueManager(data) // Pass data to league
+    league: new LeagueManager(data),
+    map: new MapManager(data)
 };
 window.onload = () => {
-    Game.league.checkWeeklyReset(); // Check date on load
-    Game.logic.initLevel(Game.data.level);
+    Game.league.checkWeeklyReset();
+    Game.map.render(); // Start on Map
 };
 
 </script>
