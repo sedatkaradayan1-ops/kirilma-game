@@ -3,33 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>KIRILMA | Pixel Puzzle</title>
+    <title>KIRILMA | Candy Puzzle</title>
     <style>
         :root {
-            --bg-color: #202028; /* Yumuşak koyu mavi-gri */
-            --panel-bg: #2d2d36;
-            --text-main: #f0f0f0;
-            --text-muted: #a0a0b0;
+            --bg-color: #2b1d38; /* Koyu Mor/Mürdüm Arkaplan */
+            --panel-bg: #402a52;
+            --text-main: #ffffff;
+            --text-muted: #dccae8;
             
-            /* Pastel Pixel Paleti */
-            --pixel-red: #e74c3c;
-            --pixel-cyan: #3498db;
-            --pixel-green: #2ecc71;
-            --pixel-yellow: #f1c40f;
-            --pixel-magenta: #9b59b6;
+            --border-color: #593a73;
+            --tile-size: 58px; /* Biraz daha büyük */
+            --gap: 4px;
             
-            --border-color: #111;
-            --tile-size: 56px;
-            --gap: 2px;
-            
-            --font-ui: 'Courier New', Courier, monospace; /* Retro font */
+            --font-ui: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; /* Daha modern, yumuşak font */
         }
 
         * { box-sizing: border-box; user-select: none; -webkit-tap-highlight-color: transparent; }
 
         body {
             margin: 0;
-            background-color: var(--bg-color);
+            background: radial-gradient(circle at center, #3c2a4d 0%, #1a1025 100%);
             color: var(--text-main);
             font-family: var(--font-ui);
             overflow: hidden;
@@ -37,13 +30,13 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            image-rendering: pixelated; /* Pixel art keskinliği */
+            /* Pixelated kaldırıldı, yumuşak geçişler için */
         }
 
         /* Layout Structure */
         #app {
             width: 100%;
-            max-width: 600px; /* Daha kompakt mobil odaklı */
+            max-width: 600px;
             height: 100%;
             display: flex;
             flex-direction: column;
@@ -57,43 +50,46 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 10px 0;
-            border-bottom: 4px solid var(--border-color);
+            padding: 10px 15px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 12px;
             margin-bottom: 10px;
-            background: var(--panel-bg);
-            padding: 10px;
-            border-radius: 4px;
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255,255,255,0.1);
         }
 
         h1 {
             margin: 0;
-            font-size: 1.5rem;
-            font-weight: 900;
-            letter-spacing: -1px;
-            text-transform: uppercase;
-            color: #fff;
-            text-shadow: 2px 2px 0 #000;
+            font-size: 1.8rem;
+            font-weight: 800;
+            background: linear-gradient(to bottom, #fff, #ffd1ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            letter-spacing: 1px;
         }
 
         .level-badge {
-            background: #444;
-            padding: 5px 10px;
+            background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 99%, #fecfef 100%);
+            color: #d63384;
+            padding: 5px 15px;
             font-weight: bold;
-            border: 2px solid #000;
-            box-shadow: 2px 2px 0 rgba(0,0,0,0.5);
+            border-radius: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
             font-size: 0.9rem;
+            text-transform: uppercase;
         }
 
         .icon-btn {
-            background: #555;
-            border: 2px solid #000;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
             color: #fff;
-            padding: 5px 10px;
+            padding: 8px;
+            border-radius: 50%;
             cursor: pointer;
-            font-family: inherit;
-            box-shadow: 2px 2px 0 rgba(0,0,0,0.5);
+            transition: all 0.2s;
         }
-        .icon-btn:active { transform: translate(2px, 2px); box-shadow: none; }
+        .icon-btn:active { transform: scale(0.9); background: rgba(255,255,255,0.2); }
 
         /* Main Game Area */
         main {
@@ -101,18 +97,18 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 10px;
+            gap: 15px;
             overflow: hidden;
         }
 
         /* Game Board */
         #game-board-container {
             position: relative;
-            padding: 8px;
-            background: #181818;
-            border: 4px solid var(--border-color);
-            border-radius: 4px;
-            box-shadow: 5px 5px 0 rgba(0,0,0,0.3);
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5), inset 0 0 20px rgba(0,0,0,0.5);
+            border: 2px solid rgba(255,255,255,0.05);
         }
 
         #grid {
@@ -120,13 +116,14 @@
             grid-template-columns: repeat(8, 1fr);
             gap: var(--gap);
             width: fit-content;
-            touch-action: none; /* Mobilde kaydırmayı engelle, oyuna ver */
+            touch-action: none;
         }
 
+        /* --- CANDY TILE STYLES --- */
         .tile {
             width: var(--tile-size);
             height: var(--tile-size);
-            background: #333;
+            background: transparent;
             cursor: pointer;
             position: relative;
             display: flex;
@@ -134,32 +131,81 @@
             align-items: center;
             transition: transform 0.2s;
             will-change: transform;
-            /* Pixel Art Style Tile */
-            box-shadow: inset 3px 3px 0 rgba(255,255,255,0.3), inset -3px -3px 0 rgba(0,0,0,0.3);
-            border: 1px solid #000;
+            /* Hafif gölge ile havada durma hissi */
+            filter: drop-shadow(0px 4px 3px rgba(0,0,0,0.4));
+        }
+        
+        /* Tüm şekerlerin ortak iç yapısı (Parlaklık ve 3D) */
+        .tile::before {
+            content: '';
+            position: absolute;
+            width: 90%; height: 90%;
+            border-radius: inherit; /* Şekli ebeveyninden al */
+            box-shadow: 
+                inset 0px -4px 6px rgba(0,0,0,0.3), /* Alt gölge */
+                inset 2px 2px 5px rgba(255,255,255,0.6), /* Üst parıltı */
+                inset 0 0 10px rgba(0,0,0,0.1); 
+            z-index: 1;
+        }
+        
+        /* Ekstra "High Gloss" parıltısı */
+        .tile::after {
+            content: '';
+            position: absolute;
+            top: 20%; left: 20%;
+            width: 25%; height: 15%;
+            background: linear-gradient(to bottom, rgba(255,255,255,0.8), rgba(255,255,255,0.1));
+            border-radius: 50%;
+            transform: rotate(-45deg);
+            pointer-events: none;
+            z-index: 2;
         }
 
-        /* Tile Shapes & Colors (Flat Pixel Style) */
-        .tile[data-type="0"] { background-color: var(--pixel-red); }
-        .tile[data-type="0"]::after { content:'■'; color:rgba(0,0,0,0.3); font-size:24px; } /* Kare */
+        /* --- ŞEKER TİPLERİ --- */
 
-        .tile[data-type="1"] { background-color: var(--pixel-cyan); }
-        .tile[data-type="1"]::after { content:'●'; color:rgba(0,0,0,0.3); font-size:24px; } /* Daire */
-
-        .tile[data-type="2"] { background-color: var(--pixel-green); }
-        .tile[data-type="2"]::after { content:'▲'; color:rgba(0,0,0,0.3); font-size:20px; } /* Üçgen */
-
-        .tile[data-type="3"] { background-color: var(--pixel-yellow); }
-        .tile[data-type="3"]::after { content:'◆'; color:rgba(0,0,0,0.3); font-size:24px; } /* Elmas */
-
-        .tile[data-type="4"] { background-color: var(--pixel-magenta); }
-        .tile[data-type="4"]::after { content:'★'; color:rgba(0,0,0,0.3); font-size:20px; } /* Yıldız */
-
-        .tile.selected { filter: brightness(1.2); transform: scale(0.95); border: 2px solid #fff; }
-        .tile.matched { animation: pop 0.2s forwards; }
+        /* Kırmızı (Jelly Bean) */
+        .tile[data-type="0"]::before {
+            background: radial-gradient(circle at 35% 35%, #ff758c, #d6334c);
+            border-radius: 40% 40% 45% 45% / 55% 55% 40% 40%;
+        }
         
-        .tile.cracked {
-            background-image: repeating-linear-gradient(45deg, transparent, transparent 5px, rgba(0,0,0,0.2) 5px, rgba(0,0,0,0.2) 10px);
+        /* Mavi (Yuvarlak Lolipop) */
+        .tile[data-type="1"]::before {
+            background: radial-gradient(circle at 30% 30%, #4facfe, #00f2fe);
+            border-radius: 50%;
+        }
+
+        /* Yeşil (Kare Yastık) */
+        .tile[data-type="2"]::before {
+            background: radial-gradient(circle at 30% 30%, #a8e063, #56ab2f);
+            border-radius: 12px; /* Hafif yuvarlatılmış kare */
+        }
+
+        /* Sarı (Limon/Damlacık) */
+        .tile[data-type="3"]::before {
+            background: radial-gradient(circle at 40% 40%, #fff200, #ffc300);
+            border-radius: 50%;
+            /* Sarıya özel şekil: Üstten biraz basık */
+            clip-path: ellipse(45% 50% at 50% 50%); /* Basit elips */
+        }
+        /* Sarı için ::after parıltısını düzelt */
+        .tile[data-type="3"]::after { top: 25%; left: 25%; }
+
+        /* Mor (Çiçek/Halka) */
+        .tile[data-type="4"]::before {
+            background: radial-gradient(circle at 30% 30%, #e0c3fc, #8ec5fc);
+            background: radial-gradient(circle at 30% 30%, #cd93ff, #6a11cb);
+            border-radius: 50%;
+            border: 4px solid rgba(255,255,255,0.2); /* Halka efekti */
+            box-sizing: border-box;
+        }
+
+        /* Efektler */
+        .tile.selected { transform: scale(1.15); filter: drop-shadow(0 0 10px gold); z-index: 10; }
+        .tile.matched { animation: pop 0.3s forwards; }
+        
+        .tile.cracked::before {
+            background-image: repeating-linear-gradient(45deg, transparent, transparent 5px, rgba(0,0,0,0.3) 5px, rgba(0,0,0,0.3) 6px);
         }
 
         /* HUD Panel */
@@ -168,60 +214,67 @@
             display: flex;
             justify-content: space-between;
             gap: 10px;
+            padding: 0 5px;
         }
 
         .panel {
             flex: 1;
-            background: var(--panel-bg);
-            border: 2px solid #000;
-            padding: 8px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            padding: 10px;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            box-shadow: 3px 3px 0 rgba(0,0,0,0.2);
+            backdrop-filter: blur(5px);
         }
 
-        .stat-label { font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; font-weight: bold; }
-        .stat-value { font-size: 1.5rem; font-weight: bold; color: #fff; margin-top: 2px; text-shadow: 2px 2px 0 #000; }
+        .stat-label { font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px; }
+        .stat-value { font-size: 1.4rem; font-weight: 800; color: #fff; margin-top: 2px; text-shadow: 0 2px 4px rgba(0,0,0,0.3); }
         
         .twist-panel { 
-            position: absolute; top: 60px; left: 50%; transform: translateX(-50%);
+            position: absolute; top: 75px; left: 50%; transform: translateX(-50%);
             width: 90%; z-index: 5;
-            background: #222; border: 2px solid var(--pixel-yellow); 
-            display: none; padding: 5px; text-align: center;
-            font-size: 0.8rem; color: var(--pixel-yellow);
+            background: rgba(0,0,0,0.8); border: 1px solid #ffcc00; border-radius: 20px;
+            display: none; padding: 8px 15px; text-align: center;
+            font-size: 0.8rem; color: #ffcc00; font-weight: bold;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
         }
 
-        .goal-item { display: flex; align-items: center; gap: 5px; margin-top: 5px; font-size: 0.9rem; font-weight: bold;}
-        .mini-tile { width: 14px; height: 14px; border: 1px solid #000; display: inline-block;}
+        .goal-item { display: flex; align-items: center; gap: 8px; margin-top: 5px; font-size: 1rem; font-weight: bold;}
+        
+        /* Mini hedefler için basit CSS daireleri */
+        .mini-tile { width: 20px; height: 20px; border-radius: 50%; box-shadow: inset -2px -2px 5px rgba(0,0,0,0.2); }
 
         .btn {
-            background: #4a69bd;
-            border: 2px solid #000;
+            background: linear-gradient(to bottom, #4facfe 0%, #00f2fe 100%);
+            border: none;
             color: #fff;
-            padding: 10px;
+            padding: 12px;
             width: 100%;
             font-weight: bold;
             text-transform: uppercase;
             cursor: pointer;
-            font-family: inherit;
-            box-shadow: 3px 3px 0 #000;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
             font-size: 0.9rem;
+            transition: transform 0.1s;
         }
-        .btn:active { transform: translate(3px, 3px); box-shadow: none; }
+        .btn:active { transform: scale(0.98); }
         
-        .btn-boost { background: #e58e26; }
-        .btn-secondary { background: #60a3bc; font-size: 0.8rem; padding: 8px;}
+        .btn-boost { background: linear-gradient(to bottom, #f093fb 0%, #f5576c 100%); }
+        .btn-secondary { background: rgba(255,255,255,0.1); font-size: 0.8rem; padding: 10px; border: 1px solid rgba(255,255,255,0.1);}
 
-        /* Tokens Display */
-        #token-display { display: flex; align-items: center; gap: 5px; font-weight: bold; color: var(--pixel-yellow); }
-        .token-icon { width: 12px; height: 12px; background: var(--pixel-yellow); border: 1px solid #000; border-radius: 50%; }
+        /* Tokens */
+        #token-display { display: flex; align-items: center; gap: 6px; font-weight: bold; color: #ffd700; background: rgba(0,0,0,0.3); padding: 5px 10px; border-radius: 15px; }
+        .token-icon { width: 14px; height: 14px; background: #ffd700; border-radius: 50%; box-shadow: inset -2px -2px 5px rgba(0,0,0,0.4); border: 1px solid #fff; }
 
         /* Overlays */
         .overlay {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.85);
+            background: rgba(20, 10, 30, 0.9);
+            backdrop-filter: blur(8px);
             z-index: 100;
             display: none;
             flex-direction: column;
@@ -229,59 +282,59 @@
             align-items: center;
             text-align: center;
         }
-        .overlay.active { display: flex; }
+        .overlay.active { display: flex; animation: fadeIn 0.3s; }
         .overlay-content { 
-            width: 85%; padding: 20px; 
-            background: var(--panel-bg); border: 4px solid #fff; 
-            box-shadow: 10px 10px 0 #000;
+            width: 85%; padding: 25px; 
+            background: linear-gradient(135deg, #2b1d38, #1a1025);
+            border: 1px solid rgba(255,255,255,0.1); 
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.6);
         }
         
-        .overlay h2 { font-size: 2rem; margin-bottom: 20px; text-shadow: 3px 3px 0 #000; }
-        .win-title { color: var(--pixel-green); }
-        .lose-title { color: var(--pixel-red); }
+        .overlay h2 { font-size: 2.2rem; margin-bottom: 15px; text-shadow: 0 4px 10px rgba(0,0,0,0.5); margin-top:0; }
+        .win-title { background: linear-gradient(to right, #a8e063, #56ab2f); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .lose-title { background: linear-gradient(to right, #ff758c, #d6334c); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
         
         /* Boost Drawer */
         #boost-drawer {
-            position: absolute; bottom: -300px; left: 0; width: 100%; height: auto;
-            background: #222; border-top: 4px solid var(--pixel-green);
-            z-index: 50; transition: bottom 0.3s ease;
-            padding: 20px; box-shadow: 0 -10px 30px rgba(0,0,0,0.5);
+            position: absolute; bottom: -350px; left: 0; width: 100%; height: auto;
+            background: #251830; 
+            border-top: 2px solid rgba(255,255,255,0.1);
+            border-radius: 20px 20px 0 0;
+            z-index: 50; transition: bottom 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            padding: 20px; box-shadow: 0 -10px 40px rgba(0,0,0,0.6);
         }
         #boost-drawer.open { bottom: 0; }
 
         .boost-item {
             display: flex; justify-content: space-between; align-items: center;
-            padding: 10px; border: 2px solid #444; background: #333;
-            margin-bottom: 10px; cursor: pointer;
+            padding: 12px; border-radius: 10px; background: rgba(255,255,255,0.05);
+            margin-bottom: 10px; cursor: pointer; border: 1px solid transparent;
         }
-        .boost-item:active { background: #444; }
+        .boost-item:active { background: rgba(255,255,255,0.1); }
+        .boost-item span b { color: #f093fb; }
 
-        /* Bottom Bar */
         footer {
-            margin-top: auto;
-            width: 100%;
-            padding: 5px;
-            display: flex;
-            justify-content: space-between;
-            font-size: 0.7rem;
-            color: #888;
+            margin-top: auto; width: 100%; padding: 10px;
+            display: flex; justify-content: space-between;
+            font-size: 0.8rem; color: rgba(255,255,255,0.5);
         }
 
-        /* Animations */
-        @keyframes pop { 0% { transform: scale(1); } 50% { transform: scale(1.2); opacity: 1; } 100% { transform: scale(0); opacity: 0; } }
-        @keyframes floatUp { 0% { transform: translateY(0); opacity: 1; } 100% { transform: translateY(-30px); opacity: 0; } }
+        @keyframes pop { 0% { transform: scale(1); } 50% { transform: scale(1.3); opacity: 1; } 100% { transform: scale(0); opacity: 0; } }
+        @keyframes floatUp { 0% { transform: translateY(0) scale(1); opacity: 1; } 100% { transform: translateY(-40px) scale(1.2); opacity: 0; } }
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
         
         .float-text {
-            position: absolute; color: #fff; font-weight: bold; font-size: 1.2rem;
-            pointer-events: none; animation: floatUp 0.8s forwards; z-index: 20;
-            text-shadow: 2px 2px 0 #000;
+            position: absolute; color: #fff; font-weight: 900; font-size: 1.5rem;
+            pointer-events: none; animation: floatUp 0.6s ease-out forwards; z-index: 20;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+            background: linear-gradient(to bottom, #fff, #ffd1ff); -webkit-background-clip: text; -webkit-text-fill-color: transparent;
         }
 
         /* Responsive */
         @media (max-width: 768px) {
-            :root { --tile-size: 11vw; --gap: 2px; }
-            #hud { flex-direction: row; flex-wrap: wrap; }
-            .panel { min-width: 80px; }
+            :root { --tile-size: 11.5vw; --gap: 3px; }
+            #hud { padding: 0; }
         }
 
     </style>
@@ -292,7 +345,7 @@
     <header>
         <h1>KIRILMA</h1>
         <div class="level-badge" id="level-display">SEVİYE 1</div>
-        <div style="display:flex; gap:10px; align-items: center;">
+        <div style="display:flex; gap:8px; align-items: center;">
             <div id="token-display"><div class="token-icon"></div> <span id="token-count">0</span></div>
             <button class="icon-btn" onclick="Game.ui.toggleSettings()">⚙️</button>
         </div>
@@ -321,40 +374,39 @@
         </div>
 
         <div id="game-board-container">
-            <!-- Grid is touch-action: none via CSS to allow dragging -->
             <div id="grid"></div>
         </div>
 
-        <div style="width:100%; display: flex; gap: 5px; margin-top: 10px;">
+        <div style="width:100%; display: flex; gap: 10px; margin-top: 5px; padding: 0 5px;">
             <button class="btn btn-boost" onclick="Game.ui.toggleBoostDrawer()">⚡ GÜÇLENDİRİCİ</button>
-            <button class="btn btn-secondary" onclick="Game.logic.restartLevel()">TEKRAR</button>
+            <button class="btn btn-secondary" style="width: 80px;" onclick="Game.logic.restartLevel()">↺</button>
         </div>
     </main>
 
     <footer>
-        <button class="icon-btn" id="sound-toggle" style="border:none; padding:0; background:none; box-shadow:none" onclick="Game.audio.toggle()">🔊</button>
-        <span id="tip-text">Değiştirmek için sürükleyin!</span>
-        <button class="icon-btn" style="border:none; padding:0; background:none; box-shadow:none" onclick="Game.ui.showHelp()">Yardım ?</button>
+        <button class="icon-btn" id="sound-toggle" style="background:none; border:none; padding:0;" onclick="Game.audio.toggle()">🔊</button>
+        <span id="tip-text" style="color: rgba(255,255,255,0.4)">Değiştirmek için sürükleyin</span>
+        <button class="icon-btn" style="background:none; border:none; padding:0;" onclick="Game.ui.showHelp()">?</button>
     </footer>
 
     <!-- Boost Drawer -->
     <div id="boost-drawer">
-        <h3 style="color:var(--pixel-green); margin-top:0; border-bottom: 2px solid #555; padding-bottom:5px;">MARKET</h3>
-        <button class="icon-btn" onclick="Game.ui.toggleBoostDrawer()" style="position:absolute; top:10px; right:10px; background:#e74c3c;">X</button>
+        <h3 style="color:#fff; margin-top:0; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom:10px; font-size: 1.1rem;">MARKET</h3>
+        <button class="icon-btn" onclick="Game.ui.toggleBoostDrawer()" style="position:absolute; top:15px; right:15px; background:rgba(255,255,255,0.1); width:30px; height:30px; display:flex; align-items:center; justify-content:center;">✕</button>
         
         <div class="boost-item" onclick="Game.logic.useBooster('move')">
             <span><b>+5 HAMLE</b></span> 
-            <span style="color:var(--pixel-yellow)">10 Jeton</span>
+            <span style="color:#ffd700; font-weight:bold;">10 Jeton</span>
         </div>
         
         <div class="boost-item" onclick="Game.logic.useBooster('shuffle')">
             <span><b>KARIŞTIR</b></span> 
-            <span style="color:var(--pixel-yellow)">15 Jeton</span>
+            <span style="color:#ffd700; font-weight:bold;">15 Jeton</span>
         </div>
         
         <div class="boost-item" onclick="Game.logic.useBooster('smash')">
             <span><b>RENK SİL</b> (Kırmızı)</span> 
-            <span style="color:var(--pixel-yellow)">25 Jeton</span>
+            <span style="color:#ffd700; font-weight:bold;">25 Jeton</span>
         </div>
     </div>
 </div>
@@ -363,39 +415,40 @@
 <div id="overlay-main" class="overlay">
     <div class="overlay-content">
         <h2 id="overlay-title">BÖLÜM GEÇİLDİ</h2>
-        <p id="overlay-msg" style="margin-bottom:20px; font-size:1.1rem; color:#ccc;"></p>
-        <div id="overlay-buttons"></div>
+        <p id="overlay-msg" style="margin-bottom:25px; font-size:1.1rem; color:#dccae8;"></p>
+        <div id="overlay-buttons" style="display:flex; flex-direction:column; gap:10px;"></div>
     </div>
 </div>
 
 <div id="overlay-settings" class="overlay">
     <div class="overlay-content">
         <h2>AYARLAR</h2>
-        <button class="btn" style="background:#e74c3c; margin-top:10px" onclick="Game.data.resetProgress(); location.reload()">İlerlemeyi Sıfırla</button>
+        <button class="btn" style="background:#ff5e57; margin-top:10px" onclick="Game.data.resetProgress(); location.reload()">İlerlemeyi Sıfırla</button>
         <button class="btn btn-secondary" style="margin-top:10px" onclick="document.getElementById('overlay-settings').classList.remove('active')">KAPAT</button>
     </div>
 </div>
 
 <script>
 /**
- * KIRILMA: Pixel Edition - Game Logic
+ * KIRILMA: Candy Edition - Game Logic
  */
 
 const CONSTANTS = {
     ROWS: 8,
     COLS: 8,
-    COLORS: ['#e74c3c', '#3498db', '#2ecc71', '#f1c40f', '#9b59b6'], // Pixel Palet
+    // Colors for Goal HUD (must match tile visual roughly)
+    COLORS: ['#ff758c', '#4facfe', '#a8e063', '#fff200', '#cd93ff'], 
     TYPES: [0, 1, 2, 3, 4],
-    SWIPE_THRESHOLD: 30 // Minimum pixel distance for swipe
+    SWIPE_THRESHOLD: 30
 };
 
 const TWISTS = {
     NONE: null,
-    BLUE_PHANTOM: { id: 'BLUE_PHANTOM', desc: "Mavi daireler puan vermez." },
+    BLUE_PHANTOM: { id: 'BLUE_PHANTOM', desc: "Mavi şekerler puan vermez." },
     ANTI_GRAVITY: { id: 'ANTI_GRAVITY', desc: "Yerçekimi yok! Boşluklar rastgele dolar." },
-    CRACKED_HULL: { id: 'CRACKED_HULL', desc: "Taşlar sertleşti. Kırmak için 2 kez eşle." },
+    CRACKED_HULL: { id: 'CRACKED_HULL', desc: "Şekerler sertleşti. Kırmak için 2 kez eşle." },
     CONTAINMENT: { id: 'CONTAINMENT', desc: "Alan daraldı! (6x6)" },
-    SPECTRUM_BAN: { id: 'SPECTRUM_BAN', desc: "Sarı taşlar bu bölümde yok." },
+    SPECTRUM_BAN: { id: 'SPECTRUM_BAN', desc: "Sarı şekerler bu bölümde yok." },
     STICKY_CORE: { id: 'STICKY_CORE', desc: "Yapışkan: Orta sıra aşağı düşmez." }
 };
 
@@ -408,7 +461,7 @@ class GameData {
     }
 
     load() {
-        const saved = localStorage.getItem('kirilma_pixel_save');
+        const saved = localStorage.getItem('kirilma_candy_save');
         if (saved) {
             const parsed = JSON.parse(saved);
             this.level = parsed.level || 1;
@@ -417,14 +470,14 @@ class GameData {
     }
 
     save() {
-        localStorage.setItem('kirilma_pixel_save', JSON.stringify({
+        localStorage.setItem('kirilma_candy_save', JSON.stringify({
             level: this.level,
             tokens: this.tokens
         }));
     }
 
     resetProgress() {
-        localStorage.removeItem('kirilma_pixel_save');
+        localStorage.removeItem('kirilma_candy_save');
     }
 }
 
@@ -455,14 +508,14 @@ class AudioController {
         } catch(e) {}
     }
 
-    playPop() { this.playTone(300, 'square', 0.05); } // Short blip
+    playPop() { this.playTone(400, 'sine', 0.1); }
     playMatch() { 
-        this.playTone(400, 'sine', 0.1); 
-        setTimeout(() => this.playTone(600, 'sine', 0.1), 80);
+        this.playTone(500, 'sine', 0.1); 
+        setTimeout(() => this.playTone(700, 'sine', 0.15), 80);
     }
     playError() { this.playTone(150, 'sawtooth', 0.2); }
     playWin() { 
-        [523, 659, 784, 1046].forEach((f, i) => setTimeout(() => this.playTone(f, 'square', 0.2), i*100));
+        [523, 659, 784, 1046].forEach((f, i) => setTimeout(() => this.playTone(f, 'sine', 0.2), i*100));
     }
 }
 
@@ -476,12 +529,10 @@ class InputController {
     }
 
     attach(element) {
-        // Touch Events
         element.addEventListener('touchstart', (e) => this.handleStart(e.touches[0].clientX, e.touches[0].clientY, e.target), {passive: false});
         element.addEventListener('touchmove', (e) => this.handleMove(e.touches[0].clientX, e.touches[0].clientY, e), {passive: false});
         element.addEventListener('touchend', (e) => this.handleEnd(e.changedTouches[0].clientX, e.changedTouches[0].clientY));
 
-        // Mouse Events
         element.addEventListener('mousedown', (e) => this.handleStart(e.clientX, e.clientY, e.target));
         window.addEventListener('mousemove', (e) => {
             if(this.isDragging) this.handleMove(e.clientX, e.clientY, e);
@@ -509,29 +560,24 @@ class InputController {
             el: tileEl
         };
         this.isDragging = true;
-        
-        // Visual feedback
         tileEl.style.transform = "scale(0.9)";
     }
 
     handleMove(x, y, e) {
         if(!this.isDragging) return;
-        e.preventDefault(); // Stop scrolling while playing
+        e.preventDefault();
     }
 
     handleEnd(x, y) {
         if (!this.isDragging || !this.activeTile) return;
         this.isDragging = false;
         
-        // Reset visual
         this.activeTile.el.style.transform = "";
 
         const diffX = x - this.startX;
         const diffY = y - this.startY;
 
-        // Determine direction
         if (Math.abs(diffX) < CONSTANTS.SWIPE_THRESHOLD && Math.abs(diffY) < CONSTANTS.SWIPE_THRESHOLD) {
-            // It was just a tap, do nothing or handle selection if we wanted click support too
             return; 
         }
 
@@ -539,18 +585,14 @@ class InputController {
         let targetC = this.activeTile.c;
 
         if (Math.abs(diffX) > Math.abs(diffY)) {
-            // Horizontal
             if (diffX > 0) targetC++; else targetC--;
         } else {
-            // Vertical
             if (diffY > 0) targetR++; else targetR--;
         }
 
-        // Check bounds
         if (targetR >= 0 && targetR < this.logic.boardSize && targetC >= 0 && targetC < this.logic.boardSize) {
             this.logic.attemptSwap(this.activeTile, {r: targetR, c: targetC});
         } else {
-            // Out of bounds swipe
             Game.audio.playError();
         }
         
@@ -613,10 +655,6 @@ class GameLogic {
         gridEl.style.gridTemplateColumns = `repeat(${this.boardSize}, 1fr)`;
         this.grid = [];
 
-        // Attach input listener to grid container
-        // Remove old listeners? For simple page refresh logic, not needed.
-        // But better to attach once. We'll attach in main init.
-
         for (let r = 0; r < this.boardSize; r++) {
             this.grid[r] = [];
             for (let c = 0; c < this.boardSize; c++) {
@@ -650,8 +688,6 @@ class GameLogic {
         data.el = tile;
     }
 
-    // --- Interaction ---
-
     attemptSwap(t1Coords, t2Coords) {
         const t1 = this.grid[t1Coords.r][t1Coords.c];
         const t2 = this.grid[t2Coords.r][t2Coords.c];
@@ -661,7 +697,6 @@ class GameLogic {
     async swapTiles(t1, t2) {
         this.isProcessing = true;
         
-        // Visual Swap Logic
         this.grid[t1.r][t1.c] = t2;
         this.grid[t2.r][t2.c] = t1;
         
@@ -682,13 +717,12 @@ class GameLogic {
             await this.resolveMatches(false, matches);
         } else {
             Game.audio.playError();
-            // Swap Back
+            
             this.grid[t1.r][t1.c] = t2;
             this.grid[t2.r][t2.c] = t1;
             t1.r = t2.r; t1.c = t2.c;
             t2.r = tempR; t2.c = tempC;
             
-            // Fix coordinates back
              const r1 = t1.r; const c1 = t1.c;
             t1.r = t2.r; t1.c = t2.c;
             t2.r = r1; t2.c = c1;
@@ -710,7 +744,6 @@ class GameLogic {
 
     findMatches() {
         const matches = new Set();
-        // Horizontal
         for (let r = 0; r < this.boardSize; r++) {
             for (let c = 0; c < this.boardSize - 2; c++) {
                 const type = this.grid[r][c].type;
@@ -719,7 +752,6 @@ class GameLogic {
                 }
             }
         }
-        // Vertical
         for (let c = 0; c < this.boardSize; c++) {
             for (let r = 0; r < this.boardSize - 2; r++) {
                 const type = this.grid[r][c].type;
@@ -739,13 +771,12 @@ class GameLogic {
             cascadeCount++;
             if (!silent) {
                 Game.audio.playMatch();
-                if(cascadeCount > 1) this.showFloatText("KOMBO!", matches[0].el);
+                if(cascadeCount > 1) this.showFloatText("HARİKA!", matches[0].el);
             }
 
             let tilesToRemove = [];
             for (let t of matches) {
                 if (this.currentTwist === TWISTS.BLUE_PHANTOM && t.type === 1) {
-                    // Ghost
                 } else if (!silent) {
                     this.score += 10 * cascadeCount;
                     if (this.goals.color !== undefined && this.goals.color === t.type) {
@@ -921,7 +952,7 @@ class UIManager {
         } else {
             goalContainer.innerHTML = `
                 <div class="goal-item">
-                    <div class="tile mini-tile" style="background-color:${CONSTANTS.COLORS[goal.color]}"></div>
+                    <div class="mini-tile" style="background: ${CONSTANTS.COLORS[goal.color]}"></div>
                     <span>x ${goal.count}</span>
                 </div>`;
         }
