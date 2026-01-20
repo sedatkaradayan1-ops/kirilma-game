@@ -3,19 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>KIRILMA | Candy Puzzle</title>
+    <title>KIRILMA | League Edition</title>
     <style>
         :root {
-            --bg-color: #2b1d38; /* Koyu Mor/Mürdüm Arkaplan */
+            --bg-color: #2b1d38;
             --panel-bg: #402a52;
             --text-main: #ffffff;
             --text-muted: #dccae8;
             
             --border-color: #593a73;
-            --tile-size: 58px; /* Biraz daha büyük */
+            --tile-size: 58px;
             --gap: 4px;
             
-            --font-ui: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; /* Daha modern, yumuşak font */
+            --font-ui: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+
+            /* Lig Renkleri */
+            --league-bronze: #cd7f32;
+            --league-silver: #c0c0c0;
+            --league-gold: #ffd700;
+            --league-crystal: #00ffff;
         }
 
         * { box-sizing: border-box; user-select: none; -webkit-tap-highlight-color: transparent; }
@@ -30,10 +36,8 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            /* Pixelated kaldırıldı, yumuşak geçişler için */
         }
 
-        /* Layout Structure */
         #app {
             width: 100%;
             max-width: 600px;
@@ -88,6 +92,8 @@
             border-radius: 50%;
             cursor: pointer;
             transition: all 0.2s;
+            width: 36px; height: 36px;
+            display: flex; align-items: center; justify-content: center;
         }
         .icon-btn:active { transform: scale(0.9); background: rgba(255,255,255,0.2); }
 
@@ -118,225 +124,97 @@
             width: fit-content;
             touch-action: none;
         }
-
-        /* --- CANDY TILE STYLES --- */
-        .tile {
-            width: var(--tile-size);
-            height: var(--tile-size);
-            background: transparent;
-            cursor: pointer;
-            position: relative;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            transition: transform 0.2s;
-            will-change: transform;
-            /* Hafif gölge ile havada durma hissi */
-            filter: drop-shadow(0px 4px 3px rgba(0,0,0,0.4));
-        }
         
-        /* Tüm şekerlerin ortak iç yapısı (Parlaklık ve 3D) */
-        .tile::before {
-            content: '';
-            position: absolute;
-            width: 90%; height: 90%;
-            border-radius: inherit; /* Şekli ebeveyninden al */
-            box-shadow: 
-                inset 0px -4px 6px rgba(0,0,0,0.3), /* Alt gölge */
-                inset 2px 2px 5px rgba(255,255,255,0.6), /* Üst parıltı */
-                inset 0 0 10px rgba(0,0,0,0.1); 
-            z-index: 1;
-        }
-        
-        /* Ekstra "High Gloss" parıltısı */
-        .tile::after {
-            content: '';
-            position: absolute;
-            top: 20%; left: 20%;
-            width: 25%; height: 15%;
-            background: linear-gradient(to bottom, rgba(255,255,255,0.8), rgba(255,255,255,0.1));
-            border-radius: 50%;
-            transform: rotate(-45deg);
-            pointer-events: none;
-            z-index: 2;
-        }
+        /* Cells & Layers */
+        .cell { width: var(--tile-size); height: var(--tile-size); position: relative; background: rgba(0,0,0,0.2); border-radius: 8px; }
+        .crack-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border-radius: 8px; pointer-events: none; z-index: 0; opacity: 0.8; transition: all 0.3s; }
+        .crack-layer.lvl-1 { background: rgba(255, 255, 255, 0.15); box-shadow: inset 0 0 10px rgba(255,255,255,0.3); border: 1px dashed rgba(255,255,255,0.3); }
+        .crack-layer.lvl-2 { background: rgba(255, 255, 255, 0.3); box-shadow: inset 0 0 15px rgba(255,255,255,0.5); border: 2px solid rgba(255,255,255,0.4); }
+        .crack-layer::after { content: ''; position: absolute; top:0; left:0; right:0; bottom:0; background-image: repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,0.2) 10px, rgba(255,255,255,0.2) 12px); opacity: 0; }
+        .crack-layer.lvl-1::after { opacity: 0.3; } .crack-layer.lvl-2::after { opacity: 0.6; }
 
-        /* --- ŞEKER TİPLERİ --- */
-
-        /* Kırmızı (Jelly Bean) */
-        .tile[data-type="0"]::before {
-            background: radial-gradient(circle at 35% 35%, #ff758c, #d6334c);
-            border-radius: 40% 40% 45% 45% / 55% 55% 40% 40%;
-        }
-        
-        /* Mavi (Yuvarlak Lolipop) */
-        .tile[data-type="1"]::before {
-            background: radial-gradient(circle at 30% 30%, #4facfe, #00f2fe);
-            border-radius: 50%;
-        }
-
-        /* Yeşil (Kare Yastık) */
-        .tile[data-type="2"]::before {
-            background: radial-gradient(circle at 30% 30%, #a8e063, #56ab2f);
-            border-radius: 12px; /* Hafif yuvarlatılmış kare */
-        }
-
-        /* Sarı (Limon/Damlacık) */
-        .tile[data-type="3"]::before {
-            background: radial-gradient(circle at 40% 40%, #fff200, #ffc300);
-            border-radius: 50%;
-            /* Sarıya özel şekil: Üstten biraz basık */
-            clip-path: ellipse(45% 50% at 50% 50%); /* Basit elips */
-        }
-        /* Sarı için ::after parıltısını düzelt */
-        .tile[data-type="3"]::after { top: 25%; left: 25%; }
-
-        /* Mor (Çiçek/Halka) */
-        .tile[data-type="4"]::before {
-            background: radial-gradient(circle at 30% 30%, #e0c3fc, #8ec5fc);
-            background: radial-gradient(circle at 30% 30%, #cd93ff, #6a11cb);
-            border-radius: 50%;
-            border: 4px solid rgba(255,255,255,0.2); /* Halka efekti */
-            box-sizing: border-box;
-        }
-
-        /* Efektler */
+        /* Tiles */
+        .tile { width: 100%; height: 100%; position: relative; z-index: 1; cursor: pointer; display: flex; justify-content: center; align-items: center; transition: transform 0.2s; filter: drop-shadow(0px 4px 3px rgba(0,0,0,0.4)); }
+        .tile::before { content: ''; position: absolute; width: 90%; height: 90%; border-radius: inherit; box-shadow: inset 0px -4px 6px rgba(0,0,0,0.3), inset 2px 2px 5px rgba(255,255,255,0.6); z-index: 1; }
+        .tile::after { content: ''; position: absolute; top: 20%; left: 20%; width: 25%; height: 15%; background: linear-gradient(to bottom, rgba(255,255,255,0.8), rgba(255,255,255,0.1)); border-radius: 50%; transform: rotate(-45deg); pointer-events: none; z-index: 2; }
+        .tile[data-type="0"]::before { background: radial-gradient(circle at 35% 35%, #ff758c, #d6334c); border-radius: 40% 40% 45% 45% / 55% 55% 40% 40%; }
+        .tile[data-type="1"]::before { background: radial-gradient(circle at 30% 30%, #4facfe, #00f2fe); border-radius: 50%; }
+        .tile[data-type="2"]::before { background: radial-gradient(circle at 30% 30%, #a8e063, #56ab2f); border-radius: 12px; }
+        .tile[data-type="3"]::before { background: radial-gradient(circle at 40% 40%, #fff200, #ffc300); border-radius: 50%; clip-path: ellipse(45% 50% at 50% 50%); } .tile[data-type="3"]::after { top: 25%; left: 25%; }
+        .tile[data-type="4"]::before { background: radial-gradient(circle at 30% 30%, #cd93ff, #6a11cb); border-radius: 50%; border: 4px solid rgba(255,255,255,0.2); box-sizing: border-box; }
         .tile.selected { transform: scale(1.15); filter: drop-shadow(0 0 10px gold); z-index: 10; }
         .tile.matched { animation: pop 0.3s forwards; }
         
-        .tile.cracked::before {
-            background-image: repeating-linear-gradient(45deg, transparent, transparent 5px, rgba(0,0,0,0.3) 5px, rgba(0,0,0,0.3) 6px);
-        }
-
         /* HUD Panel */
-        #hud {
-            width: 100%;
-            display: flex;
-            justify-content: space-between;
-            gap: 10px;
-            padding: 0 5px;
-        }
-
-        .panel {
-            flex: 1;
-            background: rgba(255,255,255,0.05);
-            border: 1px solid rgba(255,255,255,0.1);
-            border-radius: 12px;
-            padding: 10px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            backdrop-filter: blur(5px);
-        }
-
-        .stat-label { font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px; }
-        .stat-value { font-size: 1.4rem; font-weight: 800; color: #fff; margin-top: 2px; text-shadow: 0 2px 4px rgba(0,0,0,0.3); }
+        #hud { width: 100%; display: flex; justify-content: space-between; gap: 10px; padding: 0 5px; }
+        .panel { flex: 1; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 8px; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; backdrop-filter: blur(5px); min-height: 80px; }
+        .stat-label { font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px; margin-bottom: 5px; }
+        .stat-value { font-size: 1.4rem; font-weight: 800; color: #fff; text-shadow: 0 2px 4px rgba(0,0,0,0.3); }
         
-        .twist-panel { 
-            position: absolute; top: 75px; left: 50%; transform: translateX(-50%);
-            width: 90%; z-index: 5;
-            background: rgba(0,0,0,0.8); border: 1px solid #ffcc00; border-radius: 20px;
-            display: none; padding: 8px 15px; text-align: center;
-            font-size: 0.8rem; color: #ffcc00; font-weight: bold;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
-        }
+        /* Goal Styles */
+        #goal-container { display: flex; flex-direction: column; gap: 5px; width: 100%; }
+        .goal-item { display: flex; align-items: center; justify-content: space-between; font-size: 0.9rem; font-weight: bold; width: 100%; background: rgba(0,0,0,0.2); padding: 4px 8px; border-radius: 6px; }
+        .goal-item.done { opacity: 0.5; text-decoration: line-through; color: #a8e063; }
+        .mini-tile { width: 16px; height: 16px; border-radius: 50%; box-shadow: inset -1px -1px 3px rgba(0,0,0,0.3); display: inline-block;}
+        .crack-icon { width: 16px; height: 16px; background: rgba(255,255,255,0.5); border: 1px dashed #fff; transform: rotate(45deg); }
 
-        .goal-item { display: flex; align-items: center; gap: 8px; margin-top: 5px; font-size: 1rem; font-weight: bold;}
-        
-        /* Mini hedefler için basit CSS daireleri */
-        .mini-tile { width: 20px; height: 20px; border-radius: 50%; box-shadow: inset -2px -2px 5px rgba(0,0,0,0.2); }
-
-        .btn {
-            background: linear-gradient(to bottom, #4facfe 0%, #00f2fe 100%);
-            border: none;
-            color: #fff;
-            padding: 12px;
-            width: 100%;
-            font-weight: bold;
-            text-transform: uppercase;
-            cursor: pointer;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
-            font-size: 0.9rem;
-            transition: transform 0.1s;
-        }
+        .btn { background: linear-gradient(to bottom, #4facfe 0%, #00f2fe 100%); border: none; color: #fff; padding: 12px; width: 100%; font-weight: bold; text-transform: uppercase; cursor: pointer; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.2); font-size: 0.9rem; transition: transform 0.1s; }
         .btn:active { transform: scale(0.98); }
-        
         .btn-boost { background: linear-gradient(to bottom, #f093fb 0%, #f5576c 100%); }
         .btn-secondary { background: rgba(255,255,255,0.1); font-size: 0.8rem; padding: 10px; border: 1px solid rgba(255,255,255,0.1);}
 
-        /* Tokens */
-        #token-display { display: flex; align-items: center; gap: 6px; font-weight: bold; color: #ffd700; background: rgba(0,0,0,0.3); padding: 5px 10px; border-radius: 15px; }
-        .token-icon { width: 14px; height: 14px; background: #ffd700; border-radius: 50%; box-shadow: inset -2px -2px 5px rgba(0,0,0,0.4); border: 1px solid #fff; }
-
-        /* Overlays */
-        .overlay {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(20, 10, 30, 0.9);
-            backdrop-filter: blur(8px);
-            z-index: 100;
-            display: none;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            text-align: center;
-        }
-        .overlay.active { display: flex; animation: fadeIn 0.3s; }
-        .overlay-content { 
-            width: 85%; padding: 25px; 
-            background: linear-gradient(135deg, #2b1d38, #1a1025);
-            border: 1px solid rgba(255,255,255,0.1); 
-            border-radius: 20px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.6);
-        }
+        /* LEAGUE & LEADERBOARD STYLES */
+        #league-overlay .overlay-content { padding: 0; overflow: hidden; height: 70vh; display: flex; flex-direction: column; background: #2b1d38; }
+        .league-header { padding: 20px; text-align: center; background: rgba(0,0,0,0.3); border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .league-title { font-size: 1.5rem; margin: 0; font-weight: 900; color: #fff; text-shadow: 0 2px 5px rgba(0,0,0,0.5); }
+        .league-subtitle { font-size: 0.8rem; color: var(--text-muted); margin-top: 5px; }
         
-        .overlay h2 { font-size: 2.2rem; margin-bottom: 15px; text-shadow: 0 4px 10px rgba(0,0,0,0.5); margin-top:0; }
+        .league-badge { display: inline-block; padding: 5px 15px; border-radius: 20px; font-size: 0.8rem; font-weight: bold; margin-top: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.5); text-transform: uppercase;}
+        .badge-bronze { background: var(--league-bronze); color: #fff; }
+        .badge-silver { background: linear-gradient(135deg, #e0e0e0 0%, #c0c0c0 100%); color: #444; }
+        .badge-gold { background: linear-gradient(135deg, #ffd700 0%, #ffaa00 100%); color: #444; }
+        .badge-crystal { background: linear-gradient(135deg, #00ffff 0%, #0099ff 100%); color: #000; box-shadow: 0 0 15px var(--league-crystal); }
+
+        .leaderboard-list { flex: 1; overflow-y: auto; padding: 10px; }
+        .leaderboard-item { display: flex; align-items: center; justify-content: space-between; padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .lb-rank { width: 30px; font-weight: bold; color: #888; text-align: center; }
+        .lb-rank-1 { color: #ffd700; font-size: 1.2rem; }
+        .lb-rank-2 { color: #c0c0c0; font-size: 1.1rem; }
+        .lb-rank-3 { color: #cd7f32; font-size: 1.1rem; }
+        
+        .lb-user { flex: 1; padding-left: 10px; display: flex; flex-direction: column; }
+        .lb-name { font-weight: bold; font-size: 0.9rem; }
+        .lb-score { font-weight: bold; color: #a8e063; font-size: 0.9rem; }
+
+        .lb-profile-row { background: rgba(79, 172, 254, 0.2); border-top: 1px solid rgba(255,255,255,0.2); padding: 15px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 -5px 15px rgba(0,0,0,0.3); }
+        .lb-profile-info { display: flex; align-items: center; gap: 10px; }
+
+        /* Overlays & Drawers */
+        .overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(20, 10, 30, 0.95); backdrop-filter: blur(8px); z-index: 100; display: none; flex-direction: column; justify-content: center; align-items: center; text-align: center; }
+        .overlay.active { display: flex; animation: fadeIn 0.3s; }
+        .overlay-content { width: 85%; padding: 25px; background: linear-gradient(135deg, #2b1d38, #1a1025); border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.6); }
+        .overlay h2 { font-size: 2.2rem; margin-bottom: 15px; margin-top:0; }
         .win-title { background: linear-gradient(to right, #a8e063, #56ab2f); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
         .lose-title { background: linear-gradient(to right, #ff758c, #d6334c); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
         
-        /* Boost Drawer */
-        #boost-drawer {
-            position: absolute; bottom: -350px; left: 0; width: 100%; height: auto;
-            background: #251830; 
-            border-top: 2px solid rgba(255,255,255,0.1);
-            border-radius: 20px 20px 0 0;
-            z-index: 50; transition: bottom 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            padding: 20px; box-shadow: 0 -10px 40px rgba(0,0,0,0.6);
-        }
+        #boost-drawer { position: absolute; bottom: -350px; left: 0; width: 100%; height: auto; background: #251830; border-top: 2px solid rgba(255,255,255,0.1); border-radius: 20px 20px 0 0; z-index: 50; transition: bottom 0.3s; padding: 20px; box-shadow: 0 -10px 40px rgba(0,0,0,0.6); }
         #boost-drawer.open { bottom: 0; }
+        .boost-item { display: flex; justify-content: space-between; align-items: center; padding: 12px; border-radius: 10px; background: rgba(255,255,255,0.05); margin-bottom: 10px; cursor: pointer; }
 
-        .boost-item {
-            display: flex; justify-content: space-between; align-items: center;
-            padding: 12px; border-radius: 10px; background: rgba(255,255,255,0.05);
-            margin-bottom: 10px; cursor: pointer; border: 1px solid transparent;
-        }
-        .boost-item:active { background: rgba(255,255,255,0.1); }
-        .boost-item span b { color: #f093fb; }
+        #token-display { display: flex; align-items: center; gap: 6px; font-weight: bold; color: #ffd700; background: rgba(0,0,0,0.3); padding: 5px 10px; border-radius: 15px; }
+        .token-icon { width: 14px; height: 14px; background: #ffd700; border-radius: 50%; box-shadow: inset -2px -2px 5px rgba(0,0,0,0.4); border: 1px solid #fff; }
 
-        footer {
-            margin-top: auto; width: 100%; padding: 10px;
-            display: flex; justify-content: space-between;
-            font-size: 0.8rem; color: rgba(255,255,255,0.5);
-        }
-
-        @keyframes pop { 0% { transform: scale(1); } 50% { transform: scale(1.3); opacity: 1; } 100% { transform: scale(0); opacity: 0; } }
-        @keyframes floatUp { 0% { transform: translateY(0) scale(1); opacity: 1; } 100% { transform: translateY(-40px) scale(1.2); opacity: 0; } }
-        @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+        footer { margin-top: auto; width: 100%; padding: 10px; display: flex; justify-content: space-between; font-size: 0.8rem; color: rgba(255,255,255,0.5); }
         
-        .float-text {
-            position: absolute; color: #fff; font-weight: 900; font-size: 1.5rem;
-            pointer-events: none; animation: floatUp 0.6s ease-out forwards; z-index: 20;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
-            background: linear-gradient(to bottom, #fff, #ffd1ff); -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-        }
+        @keyframes pop { 0% { transform: scale(1); } 50% { transform: scale(1.3); opacity: 1; } 100% { transform: scale(0); opacity: 0; } }
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+        .float-text { position: absolute; color: #fff; font-weight: 900; font-size: 1.5rem; pointer-events: none; animation: floatUp 0.6s ease-out forwards; z-index: 20; text-shadow: 0 2px 4px rgba(0,0,0,0.5); background: linear-gradient(to bottom, #fff, #ffd1ff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        @keyframes floatUp { 0% { transform: translateY(0) scale(1); opacity: 1; } 100% { transform: translateY(-40px) scale(1.2); opacity: 0; } }
 
-        /* Responsive */
         @media (max-width: 768px) {
             :root { --tile-size: 11.5vw; --gap: 3px; }
             #hud { padding: 0; }
         }
-
     </style>
 </head>
 <body>
@@ -347,29 +225,27 @@
         <div class="level-badge" id="level-display">SEVİYE 1</div>
         <div style="display:flex; gap:8px; align-items: center;">
             <div id="token-display"><div class="token-icon"></div> <span id="token-count">0</span></div>
+            <!-- League Button -->
+            <button class="icon-btn" style="background: rgba(255, 215, 0, 0.2); border-color: #ffd700;" onclick="Game.league.openLeague()">🏆</button>
             <button class="icon-btn" onclick="Game.ui.toggleSettings()">⚙️</button>
         </div>
     </header>
 
     <main>
-        <div class="twist-panel" id="twist-panel">
-            <span id="twist-desc">...</span>
-        </div>
-
         <div id="hud">
-            <div class="panel">
+            <div class="panel" style="flex: 0.6;">
                 <div class="stat-label">HAMLE</div>
                 <div class="stat-value" id="moves-display">20</div>
             </div>
             
-            <div class="panel">
-                <div class="stat-label">HEDEF</div>
+            <div class="panel" style="flex: 1.4; align-items: stretch;">
+                <div class="stat-label" style="text-align: center;">HEDEFLER</div>
                 <div id="goal-container"></div>
             </div>
 
-            <div class="panel">
+            <div class="panel" style="flex: 0.8;">
                 <div class="stat-label">PUAN</div>
-                <div class="stat-value" style="font-size: 1.2rem" id="score-display">0</div>
+                <div class="stat-value" style="font-size: 1.1rem" id="score-display">0</div>
             </div>
         </div>
 
@@ -378,35 +254,55 @@
         </div>
 
         <div style="width:100%; display: flex; gap: 10px; margin-top: 5px; padding: 0 5px;">
-            <button class="btn btn-boost" onclick="Game.ui.toggleBoostDrawer()">⚡ GÜÇLENDİRİCİ</button>
+            <button class="btn btn-boost" onclick="Game.ui.toggleBoostDrawer()">⚡ MARKET</button>
             <button class="btn btn-secondary" style="width: 80px;" onclick="Game.logic.restartLevel()">↺</button>
         </div>
     </main>
 
     <footer>
-        <button class="icon-btn" id="sound-toggle" style="background:none; border:none; padding:0;" onclick="Game.audio.toggle()">🔊</button>
-        <span id="tip-text" style="color: rgba(255,255,255,0.4)">Değiştirmek için sürükleyin</span>
-        <button class="icon-btn" style="background:none; border:none; padding:0;" onclick="Game.ui.showHelp()">?</button>
+        <button class="icon-btn" id="sound-toggle" style="background:none; border:none;" onclick="Game.audio.toggle()">🔊</button>
+        <span id="tip-text" style="color: rgba(255,255,255,0.4)">Kaydırarak Eşleştir</span>
+        <button class="icon-btn" style="background:none; border:none;" onclick="Game.ui.showHelp()">?</button>
     </footer>
 
     <!-- Boost Drawer -->
     <div id="boost-drawer">
-        <h3 style="color:#fff; margin-top:0; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom:10px; font-size: 1.1rem;">MARKET</h3>
+        <h3 style="color:#fff; margin-top:0; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom:10px;">MARKET</h3>
         <button class="icon-btn" onclick="Game.ui.toggleBoostDrawer()" style="position:absolute; top:15px; right:15px; background:rgba(255,255,255,0.1); width:30px; height:30px; display:flex; align-items:center; justify-content:center;">✕</button>
         
-        <div class="boost-item" onclick="Game.logic.useBooster('move')">
-            <span><b>+5 HAMLE</b></span> 
-            <span style="color:#ffd700; font-weight:bold;">10 Jeton</span>
+        <div class="boost-item" onclick="Game.logic.useBooster('move')"><span><b>+5 HAMLE</b></span> <span style="color:#ffd700; font-weight:bold;">10 Jeton</span></div>
+        <div class="boost-item" onclick="Game.logic.useBooster('shuffle')"><span><b>KARIŞTIR</b></span> <span style="color:#ffd700; font-weight:bold;">15 Jeton</span></div>
+        <div class="boost-item" onclick="Game.logic.useBooster('smash')"><span><b>RENK SİL</b> (Kırmızı)</span> <span style="color:#ffd700; font-weight:bold;">25 Jeton</span></div>
+    </div>
+</div>
+
+<!-- LEAGUE OVERLAY (NEW) -->
+<div id="overlay-league" class="overlay">
+    <div class="overlay-content">
+        <div class="league-header">
+            <h2 class="league-title">LİG TABLOSU</h2>
+            <div class="league-subtitle" id="week-display">Hafta 1</div>
+            <div id="league-tier-badge" class="league-badge badge-bronze">BRONZ LİG</div>
         </div>
         
-        <div class="boost-item" onclick="Game.logic.useBooster('shuffle')">
-            <span><b>KARIŞTIR</b></span> 
-            <span style="color:#ffd700; font-weight:bold;">15 Jeton</span>
+        <div class="leaderboard-list" id="lb-list">
+            <!-- Mock Items -->
+        </div>
+
+        <div class="lb-profile-row">
+            <div class="lb-profile-info">
+                <div style="font-size:1.5rem">👤</div>
+                <div>
+                    <div style="font-weight:bold; font-size:0.9rem">SEN</div>
+                    <div style="color:#a8e063; font-size:0.8rem" id="my-weekly-score">0 Puan</div>
+                </div>
+            </div>
+            <div style="font-size:1.2rem; font-weight:bold" id="my-rank">#--</div>
         </div>
         
-        <div class="boost-item" onclick="Game.logic.useBooster('smash')">
-            <span><b>RENK SİL</b> (Kırmızı)</span> 
-            <span style="color:#ffd700; font-weight:bold;">25 Jeton</span>
+        <div style="padding:15px; display:flex; gap:10px; background:#2b1d38">
+             <button class="btn btn-secondary" onclick="Game.league.renderLeaderboard()">YENİLE</button>
+             <button class="btn" onclick="document.getElementById('overlay-league').classList.remove('active')">KAPAT</button>
         </div>
     </div>
 </div>
@@ -414,7 +310,7 @@
 <!-- Overlays -->
 <div id="overlay-main" class="overlay">
     <div class="overlay-content">
-        <h2 id="overlay-title">BÖLÜM GEÇİLDİ</h2>
+        <h2 id="overlay-title">BAŞARDIN!</h2>
         <p id="overlay-msg" style="margin-bottom:25px; font-size:1.1rem; color:#dccae8;"></p>
         <div id="overlay-buttons" style="display:flex; flex-direction:column; gap:10px;"></div>
     </div>
@@ -429,599 +325,375 @@
 </div>
 
 <script>
-/**
- * KIRILMA: Candy Edition - Game Logic
- */
+const CONSTANTS = { ROWS: 8, COLS: 8, COLORS: ['#ff758c', '#4facfe', '#a8e063', '#fff200', '#cd93ff'], TYPES: [0, 1, 2, 3, 4] };
 
-const CONSTANTS = {
-    ROWS: 8,
-    COLS: 8,
-    // Colors for Goal HUD (must match tile visual roughly)
-    COLORS: ['#ff758c', '#4facfe', '#a8e063', '#fff200', '#cd93ff'], 
-    TYPES: [0, 1, 2, 3, 4],
-    SWIPE_THRESHOLD: 30
+const LEVELS = {
+    1: { moves: 20, goals: [{ type: 'score', amount: 1000 }] },
+    2: { moves: 25, goals: [{ type: 'collect', colorId: 0, amount: 15 }] },
+    3: { moves: 30, goals: [{ type: 'cracks', amount: 8 }], layout: { cracks: [{r:3, c:3, lvl:2}, {r:3, c:4, lvl:2}, {r:4, c:3, lvl:2}, {r:4, c:4, lvl:2}, {r:2, c:2, lvl:1}, {r:2, c:5, lvl:1}, {r:5, c:2, lvl:1}, {r:5, c:5, lvl:1}] } },
+    4: { moves: 35, goals: [{ type: 'score', amount: 3000 }, { type: 'collect', colorId: 1, amount: 20 }, { type: 'cracks', amount: 10 }], layout: { cracks: (() => { let arr = []; for(let c=0; c<8; c++) { arr.push({r:7, c:c, lvl:2}); arr.push({r:6, c:c, lvl:1}); } return arr; })() } }
 };
 
-const TWISTS = {
-    NONE: null,
-    BLUE_PHANTOM: { id: 'BLUE_PHANTOM', desc: "Mavi şekerler puan vermez." },
-    ANTI_GRAVITY: { id: 'ANTI_GRAVITY', desc: "Yerçekimi yok! Boşluklar rastgele dolar." },
-    CRACKED_HULL: { id: 'CRACKED_HULL', desc: "Şekerler sertleşti. Kırmak için 2 kez eşle." },
-    CONTAINMENT: { id: 'CONTAINMENT', desc: "Alan daraldı! (6x6)" },
-    SPECTRUM_BAN: { id: 'SPECTRUM_BAN', desc: "Sarı şekerler bu bölümde yok." },
-    STICKY_CORE: { id: 'STICKY_CORE', desc: "Yapışkan: Orta sıra aşağı düşmez." }
-};
+// --- LEAGUE SYSTEM ---
+class LeagueManager {
+    constructor(data) {
+        this.data = data;
+        this.tiers = [
+            { name: 'BRONZ', min: 0, class: 'badge-bronze' },
+            { name: 'GÜMÜŞ', min: 5000, class: 'badge-silver' },
+            { name: 'ALTIN', min: 15000, class: 'badge-gold' },
+            { name: 'KRİSTAL', min: 30000, class: 'badge-crystal' }
+        ];
+        // Mock Names for Leaderboard
+        this.bots = ["CandyKing", "PuzzlePro", "SweetTooth", "BuzKıran", "JellyBean", "StarPlayer", "ŞanslıKedi", "NeonRider", "HexMaster"];
+    }
+
+    getCurrentTier() {
+        // Find highest tier where score >= min
+        let t = this.tiers[0];
+        for(let i=0; i<this.tiers.length; i++) {
+            if(this.data.weeklyScore >= this.tiers[i].min) t = this.tiers[i];
+        }
+        return t;
+    }
+
+    checkWeeklyReset() {
+        const now = new Date();
+        const weekId = `${now.getFullYear()}-W${this.getWeekNumber(now)}`;
+        
+        if (this.data.currentWeekId !== weekId) {
+            console.log("Haftalık Reset!");
+            this.data.weeklyScore = 0; // Reset score
+            this.data.currentWeekId = weekId;
+            this.data.save();
+            alert("Yeni Hafta Başladı! Lig skorları sıfırlandı.");
+        }
+    }
+
+    getWeekNumber(d) {
+        d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+        d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay()||7));
+        var yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
+        return Math.ceil((((d - yearStart) / 86400000) + 1)/7);
+    }
+
+    addScore(points) {
+        this.data.weeklyScore += points;
+        this.data.save();
+    }
+
+    openLeague() {
+        this.checkWeeklyReset();
+        this.renderLeaderboard();
+        document.getElementById('overlay-league').classList.add('active');
+    }
+
+    renderLeaderboard() {
+        const currentTier = this.getCurrentTier();
+        
+        // Update UI Header
+        document.getElementById('week-display').textContent = this.data.currentWeekId;
+        const badgeEl = document.getElementById('league-tier-badge');
+        badgeEl.className = `league-badge ${currentTier.class}`;
+        badgeEl.textContent = `${currentTier.name} LİGİ`;
+        
+        document.getElementById('my-weekly-score').textContent = this.data.weeklyScore + " Puan";
+
+        // Generate Mock Data + User
+        let leaderboard = [];
+        
+        // Add User
+        leaderboard.push({ name: "SEN", score: this.data.weeklyScore, isMe: true });
+
+        // Add Bots (with dynamic scores based on tier to make it competitive)
+        this.bots.forEach((name, idx) => {
+            // Random score around user score or tier baseline
+            let base = currentTier.min;
+            if(base === 0) base = 1000;
+            
+            // Random variance
+            let score = Math.floor(base * (0.5 + Math.random() * 1.5));
+            // Make top 3 very high
+            if(idx < 3) score += Math.floor(Math.random() * 5000);
+            
+            leaderboard.push({ name: name, score: score, isMe: false });
+        });
+
+        // Sort descending
+        leaderboard.sort((a, b) => b.score - a.score);
+
+        // Render List
+        const listEl = document.getElementById('lb-list');
+        listEl.innerHTML = '';
+        
+        let myRank = "-";
+
+        leaderboard.forEach((p, idx) => {
+            const rank = idx + 1;
+            if(p.isMe) myRank = rank;
+
+            const div = document.createElement('div');
+            div.className = 'leaderboard-item';
+            if(p.isMe) div.style.background = "rgba(79, 172, 254, 0.1)";
+
+            let rankClass = "lb-rank";
+            if(rank === 1) rankClass += " lb-rank-1";
+            else if(rank === 2) rankClass += " lb-rank-2";
+            else if(rank === 3) rankClass += " lb-rank-3";
+
+            div.innerHTML = `
+                <div class="${rankClass}">#${rank}</div>
+                <div class="lb-user">
+                    <div class="lb-name">${p.name}</div>
+                </div>
+                <div class="lb-score">${p.score}</div>
+            `;
+            listEl.appendChild(div);
+        });
+
+        document.getElementById('my-rank').textContent = "#" + myRank;
+    }
+}
 
 class GameData {
     constructor() {
         this.level = 1;
         this.tokens = 50;
-        this.settings = { sound: true };
+        this.weeklyScore = 0;
+        this.currentWeekId = "";
         this.load();
     }
-
     load() {
-        const saved = localStorage.getItem('kirilma_candy_save');
+        const saved = localStorage.getItem('kirilma_league_save');
         if (saved) {
             const parsed = JSON.parse(saved);
             this.level = parsed.level || 1;
             this.tokens = parsed.tokens || 50;
+            this.weeklyScore = parsed.weeklyScore || 0;
+            this.currentWeekId = parsed.currentWeekId || "";
         }
     }
-
     save() {
-        localStorage.setItem('kirilma_candy_save', JSON.stringify({
-            level: this.level,
-            tokens: this.tokens
+        localStorage.setItem('kirilma_league_save', JSON.stringify({
+            level: this.level, tokens: this.tokens,
+            weeklyScore: this.weeklyScore, currentWeekId: this.currentWeekId
         }));
     }
-
-    resetProgress() {
-        localStorage.removeItem('kirilma_candy_save');
-    }
+    resetProgress() { localStorage.removeItem('kirilma_league_save'); }
 }
 
 class AudioController {
-    constructor() {
-        this.ctx = new (window.AudioContext || window.webkitAudioContext)();
-        this.enabled = true;
-    }
-
-    toggle() {
-        this.enabled = !this.enabled;
-        document.getElementById('sound-toggle').textContent = this.enabled ? '🔊' : '🔇';
-    }
-
-    playTone(freq, type, duration) {
-        if (!this.enabled) return;
-        try {
-            const osc = this.ctx.createOscillator();
-            const gain = this.ctx.createGain();
-            osc.type = type;
-            osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
-            gain.gain.setValueAtTime(0.05, this.ctx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
-            osc.connect(gain);
-            gain.connect(this.ctx.destination);
-            osc.start();
-            osc.stop(this.ctx.currentTime + duration);
-        } catch(e) {}
-    }
-
+    constructor() { this.ctx = new (window.AudioContext || window.webkitAudioContext)(); this.enabled = true; }
+    toggle() { this.enabled = !this.enabled; document.getElementById('sound-toggle').textContent = this.enabled ? '🔊' : '🔇'; }
+    playTone(f, t, d) { if (!this.enabled) return; try { const o = this.ctx.createOscillator(); const g = this.ctx.createGain(); o.type = t; o.frequency.setValueAtTime(f, this.ctx.currentTime); g.gain.setValueAtTime(0.05, this.ctx.currentTime); g.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + d); o.connect(g); g.connect(this.ctx.destination); o.start(); o.stop(this.ctx.currentTime + d); } catch(e){} }
     playPop() { this.playTone(400, 'sine', 0.1); }
-    playMatch() { 
-        this.playTone(500, 'sine', 0.1); 
-        setTimeout(() => this.playTone(700, 'sine', 0.15), 80);
-    }
+    playMatch() { this.playTone(600, 'sine', 0.15); setTimeout(() => this.playTone(800, 'sine', 0.1), 100); }
+    playCrack() { this.playTone(200, 'sawtooth', 0.1); } 
+    playWin() { [523,659,784,1046].forEach((f,i)=>setTimeout(()=>this.playTone(f,'sine',0.3),i*150)); }
     playError() { this.playTone(150, 'sawtooth', 0.2); }
-    playWin() { 
-        [523, 659, 784, 1046].forEach((f, i) => setTimeout(() => this.playTone(f, 'sine', 0.2), i*100));
-    }
-}
-
-class InputController {
-    constructor(gameLogic) {
-        this.logic = gameLogic;
-        this.startX = 0;
-        this.startY = 0;
-        this.activeTile = null;
-        this.isDragging = false;
-    }
-
-    attach(element) {
-        element.addEventListener('touchstart', (e) => this.handleStart(e.touches[0].clientX, e.touches[0].clientY, e.target), {passive: false});
-        element.addEventListener('touchmove', (e) => this.handleMove(e.touches[0].clientX, e.touches[0].clientY, e), {passive: false});
-        element.addEventListener('touchend', (e) => this.handleEnd(e.changedTouches[0].clientX, e.changedTouches[0].clientY));
-
-        element.addEventListener('mousedown', (e) => this.handleStart(e.clientX, e.clientY, e.target));
-        window.addEventListener('mousemove', (e) => {
-            if(this.isDragging) this.handleMove(e.clientX, e.clientY, e);
-        });
-        window.addEventListener('mouseup', (e) => {
-            if(this.isDragging) this.handleEnd(e.clientX, e.clientY);
-        });
-    }
-
-    getTileFromTarget(target) {
-        if(target.classList.contains('tile')) return target;
-        return target.closest('.tile');
-    }
-
-    handleStart(x, y, target) {
-        if (this.logic.isProcessing) return;
-        const tileEl = this.getTileFromTarget(target);
-        if (!tileEl) return;
-
-        this.startX = x;
-        this.startY = y;
-        this.activeTile = {
-            r: parseInt(tileEl.dataset.r),
-            c: parseInt(tileEl.dataset.c),
-            el: tileEl
-        };
-        this.isDragging = true;
-        tileEl.style.transform = "scale(0.9)";
-    }
-
-    handleMove(x, y, e) {
-        if(!this.isDragging) return;
-        e.preventDefault();
-    }
-
-    handleEnd(x, y) {
-        if (!this.isDragging || !this.activeTile) return;
-        this.isDragging = false;
-        
-        this.activeTile.el.style.transform = "";
-
-        const diffX = x - this.startX;
-        const diffY = y - this.startY;
-
-        if (Math.abs(diffX) < CONSTANTS.SWIPE_THRESHOLD && Math.abs(diffY) < CONSTANTS.SWIPE_THRESHOLD) {
-            return; 
-        }
-
-        let targetR = this.activeTile.r;
-        let targetC = this.activeTile.c;
-
-        if (Math.abs(diffX) > Math.abs(diffY)) {
-            if (diffX > 0) targetC++; else targetC--;
-        } else {
-            if (diffY > 0) targetR++; else targetR--;
-        }
-
-        if (targetR >= 0 && targetR < this.logic.boardSize && targetC >= 0 && targetC < this.logic.boardSize) {
-            this.logic.attemptSwap(this.activeTile, {r: targetR, c: targetC});
-        } else {
-            Game.audio.playError();
-        }
-        
-        this.activeTile = null;
-    }
 }
 
 class GameLogic {
     constructor() {
-        this.grid = [];
-        this.isProcessing = false;
-        this.score = 0;
-        this.moves = 0;
-        this.goals = {};
-        this.currentTwist = null;
-        this.boardSize = 8;
-        this.bannedColor = -1;
-        
-        this.input = new InputController(this);
+        this.grid = []; this.cellGrid = []; this.activeGoals = []; this.score = 0; this.moves = 0; this.input = new InputController(this);
     }
 
     initLevel(levelNum) {
-        this.score = 0;
-        this.moves = Math.max(15, 30 - Math.floor(levelNum / 2));
-        this.goals = this.generateGoals(levelNum);
-        this.currentTwist = this.getTwistForLevel(levelNum);
+        const config = LEVELS[levelNum] || this.generateRandomLevel(levelNum);
+        this.score = 0; this.moves = config.moves;
+        this.activeGoals = config.goals.map((g, idx) => ({ ...g, current: g.amount, id: idx }));
         
-        this.boardSize = (this.currentTwist === TWISTS.CONTAINMENT) ? 6 : 8;
-        this.bannedColor = (this.currentTwist === TWISTS.SPECTRUM_BAN) ? 3 : -1;
+        this.cellGrid = [];
+        for(let r=0; r<CONSTANTS.ROWS; r++) { this.cellGrid[r] = []; for(let c=0; c<CONSTANTS.COLS; c++) { this.cellGrid[r][c] = { crackLevel: 0, el: null }; } }
+        if (config.layout && config.layout.cracks) { config.layout.cracks.forEach(c => { if(this.cellGrid[c.r] && this.cellGrid[c.r][c.c]) this.cellGrid[c.r][c.c].crackLevel = c.lvl; }); }
 
-        Game.ui.updateLevelInfo(levelNum, this.moves, this.goals, this.currentTwist);
+        Game.ui.updateLevelInfo(levelNum, this.moves, this.activeGoals);
         Game.ui.closeOverlays();
-        
-        this.createGrid();
-        this.resolveMatches(true);
+        this.createGrid(); this.resolveMatches(true);
     }
 
-    getTwistForLevel(lvl) {
-        if (lvl < 5) return TWISTS.NONE;
-        if (lvl >= 5 && lvl < 10) return TWISTS.BLUE_PHANTOM;
-        if (lvl >= 10 && lvl < 15) return TWISTS.ANTI_GRAVITY;
-        if (lvl >= 15 && lvl < 20) return TWISTS.CRACKED_HULL;
-        if (lvl >= 20 && lvl < 25) return TWISTS.CONTAINMENT;
-        if (lvl >= 25 && lvl < 30) return TWISTS.SPECTRUM_BAN;
-        if (lvl >= 30) return TWISTS.STICKY_CORE;
-        return TWISTS.NONE;
-    }
-
-    generateGoals(lvl) {
-        const targetScore = lvl * 800;
-        const colorTarget = 10 + Math.floor(lvl * 1.5);
-        if (lvl % 3 === 0) return { score: targetScore };
-        if (lvl % 3 === 1) return { color: 0, count: colorTarget };
-        return { color: 2, count: colorTarget };
-    }
+    generateRandomLevel(lvl) { return { moves: 20 + Math.floor(lvl/2), goals: [ { type: 'score', amount: lvl * 1500 }, { type: 'collect', colorId: Math.floor(Math.random()*5), amount: 15 + lvl } ] }; }
 
     createGrid() {
-        const gridEl = document.getElementById('grid');
-        gridEl.innerHTML = '';
-        gridEl.style.gridTemplateColumns = `repeat(${this.boardSize}, 1fr)`;
-        this.grid = [];
-
-        for (let r = 0; r < this.boardSize; r++) {
+        const gridEl = document.getElementById('grid'); gridEl.innerHTML = ''; gridEl.style.gridTemplateColumns = `repeat(${CONSTANTS.COLS}, 1fr)`; this.grid = [];
+        for (let r = 0; r < CONSTANTS.ROWS; r++) {
             this.grid[r] = [];
-            for (let c = 0; c < this.boardSize; c++) {
-                this.grid[r][c] = this.spawnTileData(r, c);
-                this.createTileDOM(r, c);
+            for (let c = 0; c < CONSTANTS.COLS; c++) {
+                const cellEl = document.createElement('div'); cellEl.className = 'cell';
+                const crackEl = document.createElement('div'); crackEl.className = 'crack-layer';
+                this.updateCrackVisualDOM(crackEl, this.cellGrid[r][c].crackLevel); this.cellGrid[r][c].el = crackEl; cellEl.appendChild(crackEl);
+                let type = Math.floor(Math.random() * 5);
+                this.grid[r][c] = { type: type, r: r, c: c, el: null };
+                const tileEl = document.createElement('div'); tileEl.className = 'tile'; tileEl.dataset.type = type; tileEl.dataset.r = r; tileEl.dataset.c = c; this.grid[r][c].el = tileEl;
+                cellEl.appendChild(tileEl); gridEl.appendChild(cellEl);
             }
         }
+        this.input.attach(gridEl);
     }
 
-    spawnTileData(r, c) {
-        let type;
-        do { type = Math.floor(Math.random() * 5); } while (type === this.bannedColor);
-        return {
-            type: type,
-            r: r, c: c,
-            el: null,
-            cracked: (this.currentTwist === TWISTS.CRACKED_HULL)
-        };
-    }
-
-    createTileDOM(r, c) {
-        const data = this.grid[r][c];
-        const tile = document.createElement('div');
-        tile.className = 'tile';
-        tile.dataset.type = data.type;
-        tile.dataset.r = r;
-        tile.dataset.c = c;
-        if (data.cracked) tile.classList.add('cracked');
-        
-        document.getElementById('grid').appendChild(tile);
-        data.el = tile;
-    }
+    updateCrackVisualDOM(el, level) { el.className = 'crack-layer'; if (level > 0) el.classList.add('lvl-' + level); }
 
     attemptSwap(t1Coords, t2Coords) {
-        const t1 = this.grid[t1Coords.r][t1Coords.c];
-        const t2 = this.grid[t2Coords.r][t2Coords.c];
-        this.swapTiles(t1, t2);
-    }
-
-    async swapTiles(t1, t2) {
-        this.isProcessing = true;
-        
-        this.grid[t1.r][t1.c] = t2;
-        this.grid[t2.r][t2.c] = t1;
-        
-        const tempR = t1.r, tempC = t1.c;
-        t1.r = t2.r; t1.c = t2.c;
-        t2.r = tempR; t2.c = tempC;
-
-        this.updateTileVisuals(t1);
-        this.updateTileVisuals(t2);
-
-        await this.wait(150);
-
-        const matches = this.findMatches();
-        
-        if (matches.length > 0) {
-            this.moves--;
-            Game.ui.updateHUD();
-            await this.resolveMatches(false, matches);
-        } else {
-            Game.audio.playError();
-            
-            this.grid[t1.r][t1.c] = t2;
-            this.grid[t2.r][t2.c] = t1;
-            t1.r = t2.r; t1.c = t2.c;
-            t2.r = tempR; t2.c = tempC;
-            
-             const r1 = t1.r; const c1 = t1.c;
-            t1.r = t2.r; t1.c = t2.c;
-            t2.r = r1; t2.c = c1;
-
-            this.updateTileVisuals(t1);
-            this.updateTileVisuals(t2);
-            this.isProcessing = false;
-        }
-    }
-
-    updateTileVisuals(tileData) {
-        const el = tileData.el;
-        el.dataset.type = tileData.type;
-        el.className = 'tile';
-        if (tileData.cracked) el.classList.add('cracked');
-        el.dataset.r = tileData.r;
-        el.dataset.c = tileData.c;
+        const t1 = this.grid[t1Coords.r][t1Coords.c]; const t2 = this.grid[t2Coords.r][t2Coords.c];
+        this.grid[t1.r][t1.c] = t2; this.grid[t2.r][t2.c] = t1; t1.r = t2Coords.r; t1.c = t2Coords.c; t2.r = t1Coords.r; t2.c = t1Coords.c;
+        const cellNew1 = this.cellGrid[t1.r][t1.c].el.parentElement; const cellNew2 = this.cellGrid[t2.r][t2.c].el.parentElement;
+        cellNew1.appendChild(t1.el); cellNew2.appendChild(t2.el); t1.el.dataset.r = t1.r; t1.el.dataset.c = t1.c; t2.el.dataset.r = t2.r; t2.el.dataset.c = t2.c;
+        setTimeout(() => {
+            const matches = this.findMatches();
+            if(matches.length > 0) { this.moves--; Game.ui.updateHUD(); this.resolveMatches(false, matches); } 
+            else { 
+                Game.audio.playError();
+                this.grid[t1.r][t1.c] = t2; this.grid[t2.r][t2.c] = t1;
+                const tr = t1.r, tc = t1.c; t1.r = t2.r; t1.c = t2.c; t2.r = tr; t2.c = tc;
+                const c1 = this.cellGrid[t1.r][t1.c].el.parentElement; const c2 = this.cellGrid[t2.r][t2.c].el.parentElement;
+                c1.appendChild(t1.el); c2.appendChild(t2.el); t1.el.dataset.r = t1.r; t1.el.dataset.c = t1.c; t2.el.dataset.r = t2.r; t2.el.dataset.c = t2.c;
+            }
+        }, 200);
     }
 
     findMatches() {
         const matches = new Set();
-        for (let r = 0; r < this.boardSize; r++) {
-            for (let c = 0; c < this.boardSize - 2; c++) {
-                const type = this.grid[r][c].type;
-                if (type === this.grid[r][c+1].type && type === this.grid[r][c+2].type) {
-                    matches.add(this.grid[r][c]); matches.add(this.grid[r][c+1]); matches.add(this.grid[r][c+2]);
-                }
-            }
-        }
-        for (let c = 0; c < this.boardSize; c++) {
-            for (let r = 0; r < this.boardSize - 2; r++) {
-                const type = this.grid[r][c].type;
-                if (type === this.grid[r+1][c].type && type === this.grid[r+2][c].type) {
-                    matches.add(this.grid[r][c]); matches.add(this.grid[r+1][c]); matches.add(this.grid[r+2][c]);
-                }
-            }
-        }
+        for (let r = 0; r < CONSTANTS.ROWS; r++) { for (let c = 0; c < CONSTANTS.COLS - 2; c++) { const type = this.grid[r][c].type; if (type === this.grid[r][c+1].type && type === this.grid[r][c+2].type) { matches.add(this.grid[r][c]); matches.add(this.grid[r][c+1]); matches.add(this.grid[r][c+2]); } } }
+        for (let c = 0; c < CONSTANTS.COLS; c++) { for (let r = 0; r < CONSTANTS.ROWS - 2; r++) { const type = this.grid[r][c].type; if (type === this.grid[r+1][c].type && type === this.grid[r+2][c].type) { matches.add(this.grid[r][c]); matches.add(this.grid[r+1][c]); matches.add(this.grid[r+2][c]); } } }
         return Array.from(matches);
     }
 
     async resolveMatches(silent = false, initialMatches = null) {
         let matches = initialMatches || this.findMatches();
         let cascadeCount = 0;
-
         while (matches.length > 0) {
             cascadeCount++;
-            if (!silent) {
-                Game.audio.playMatch();
-                if(cascadeCount > 1) this.showFloatText("HARİKA!", matches[0].el);
-            }
-
-            let tilesToRemove = [];
+            if (!silent) { Game.audio.playMatch(); if(cascadeCount > 1) Game.ui.showFloatText("HARİKA!", matches[0].el); }
             for (let t of matches) {
-                if (this.currentTwist === TWISTS.BLUE_PHANTOM && t.type === 1) {
-                } else if (!silent) {
+                if (!silent) {
                     this.score += 10 * cascadeCount;
-                    if (this.goals.color !== undefined && this.goals.color === t.type) {
-                        this.goals.count = Math.max(0, this.goals.count - 1);
-                    }
-                }
-
-                if (this.currentTwist === TWISTS.CRACKED_HULL && t.cracked && !silent) {
-                    t.cracked = false;
-                    this.updateTileVisuals(t);
-                } else {
-                    tilesToRemove.push(t);
+                    this.updateGoalProgress('collect', t.type);
+                    const cell = this.cellGrid[t.r][t.c];
+                    if (cell.crackLevel > 0) { cell.crackLevel--; this.updateCrackVisualDOM(cell.el, cell.crackLevel); Game.audio.playCrack(); if(cell.crackLevel === 0) this.updateGoalProgress('cracks', 1); }
                 }
             }
-
-            if (!silent) {
-                tilesToRemove.forEach(t => t.el.classList.add('matched'));
-                await this.wait(200);
-            }
-
-            tilesToRemove.forEach(t => {
-                this.grid[t.r][t.c] = null;
-                t.el.remove();
-            });
-
+            this.updateGoalProgress('score', this.score);
+            if (!silent) { matches.forEach(t => t.el.classList.add('matched')); await new Promise(r => setTimeout(r, 250)); }
+            matches.forEach(t => { if(t.el.parentElement) t.el.parentElement.removeChild(t.el); this.grid[t.r][t.c] = null; });
             await this.applyGravity();
             matches = this.findMatches();
             if (!silent) Game.ui.updateHUD();
         }
-
-        this.isProcessing = false;
         if (!silent) this.checkGameState();
     }
 
     async applyGravity() {
-        if (this.currentTwist === TWISTS.ANTI_GRAVITY) {
-            for (let r = 0; r < this.boardSize; r++) {
-                for (let c = 0; c < this.boardSize; c++) {
-                    if (this.grid[r][c] === null) {
-                        const newData = this.spawnTileData(r, c);
-                        this.grid[r][c] = newData;
-                        this.createTileDOM(r, c);
-                    }
-                }
-            }
-            this.rebuildGridDOM();
-            await this.wait(50);
-            return;
-        }
-
-        for (let c = 0; c < this.boardSize; c++) {
+        for (let c = 0; c < CONSTANTS.COLS; c++) {
             let emptySlots = 0;
-            for (let r = this.boardSize - 1; r >= 0; r--) {
-                if (this.currentTwist === TWISTS.STICKY_CORE && (r === 3 || r === 4)) {
-                     if (this.grid[r][c] === null) this.grid[r][c] = this.spawnTileData(r, c);
-                     continue;
-                }
-                if (this.grid[r][c] === null) {
-                    emptySlots++;
-                } else if (emptySlots > 0) {
-                    const tile = this.grid[r][c];
-                    this.grid[r + emptySlots][c] = tile;
-                    tile.r = r + emptySlots;
-                    this.grid[r][c] = null;
-                }
-            }
-            for (let r = 0; r < emptySlots; r++) {
-                this.grid[r][c] = this.spawnTileData(r, c);
+            for (let r = CONSTANTS.ROWS - 1; r >= 0; r--) { if (this.grid[r][c] === null) { emptySlots++; } else if (emptySlots > 0) { const tile = this.grid[r][c]; this.grid[r + emptySlots][c] = tile; tile.r = r + emptySlots; this.grid[r][c] = null; } }
+            for (let r = 0; r < emptySlots; r++) { const type = Math.floor(Math.random() * 5); this.grid[r][c] = { type: type, r: r, c: c, el: null }; }
+        }
+        for(let r=0; r<CONSTANTS.ROWS; r++) {
+            for(let c=0; c<CONSTANTS.COLS; c++) {
+                let t = this.grid[r][c]; const cell = this.cellGrid[r][c].el.parentElement;
+                if (!t.el) { const tileEl = document.createElement('div'); tileEl.className = 'tile falling'; tileEl.dataset.type = t.type; tileEl.dataset.r = r; tileEl.dataset.c = c; t.el = tileEl; cell.appendChild(tileEl); } 
+                else { if (t.el.parentElement !== cell) { cell.appendChild(t.el); t.el.dataset.r = r; t.el.dataset.c = c; } }
             }
         }
-        this.rebuildGridDOM();
-        await this.wait(100);
+        await new Promise(r => setTimeout(r, 100));
     }
 
-    rebuildGridDOM() {
-        const container = document.getElementById('grid');
-        container.innerHTML = '';
-        for (let r = 0; r < this.boardSize; r++) {
-            for (let c = 0; c < this.boardSize; c++) {
-                const t = this.grid[r][c];
-                const tile = document.createElement('div');
-                tile.className = 'tile';
-                tile.dataset.type = t.type;
-                if(t.cracked) tile.classList.add('cracked');
-                tile.dataset.r = r;
-                tile.dataset.c = c;
-                t.el = tile;
-                container.appendChild(tile);
-            }
-        }
+    updateGoalProgress(type, val) {
+        this.activeGoals.forEach(g => {
+            if (g.isMet) return;
+            if (type === 'score' && g.type === 'score') g.current = Math.max(0, g.amount - val);
+            else if (type === 'collect' && g.type === 'collect' && g.colorId === val) g.current = Math.max(0, g.current - 1);
+            else if (type === 'cracks' && g.type === 'cracks') g.current = Math.max(0, g.current - val);
+            if (g.current <= 0) g.isMet = true;
+        });
     }
 
     checkGameState() {
-        let won = false;
-        if (this.goals.score && this.score >= this.goals.score) won = true;
-        if (this.goals.color !== undefined && this.goals.count <= 0) won = true;
-
-        if (won) {
-            Game.audio.playWin();
-            Game.ui.showLevelComplete();
-            return;
-        }
-        if (this.moves <= 0) {
-            Game.ui.showGameOver();
-        }
+        const allMet = this.activeGoals.every(g => g.isMet);
+        if (allMet) { Game.audio.playWin(); Game.ui.showLevelComplete(); } 
+        else if (this.moves <= 0) Game.ui.showGameOver();
     }
 
     useBooster(type) {
-        if (this.isProcessing) return;
-        const costs = { move: 10, shuffle: 15, smash: 25 };
-        if (Game.data.tokens < costs[type]) {
-            alert("Yetersiz Jeton!");
-            return;
-        }
-        Game.data.tokens -= costs[type];
-        Game.data.save();
-        Game.ui.updateHUD();
-        Game.ui.toggleBoostDrawer();
-
-        if (type === 'move') {
-            this.moves += 5;
-            this.showFloatText("+5 HAMLE", document.getElementById('moves-display'));
-        } else if (type === 'shuffle') {
-            this.createGrid();
-            this.resolveMatches(true);
-            this.showFloatText("KARIŞTI", document.getElementById('grid'));
-        } else if (type === 'smash') {
-            for(let r=0; r<this.boardSize; r++){
-                for(let c=0; c<this.boardSize; c++){
-                    if(this.grid[r][c].type === 0) {
-                        this.grid[r][c] = null;
-                        this.score += 50;
-                    }
-                }
-            }
-            this.applyGravity().then(() => this.resolveMatches());
-        }
-        Game.ui.updateHUD();
-    }
-
-    wait(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
-    
-    showFloatText(text, targetEl) {
-        const rect = targetEl.getBoundingClientRect();
-        const float = document.createElement('div');
-        float.className = 'float-text';
-        float.textContent = text;
-        float.style.left = rect.left + 'px';
-        float.style.top = rect.top + 'px';
-        document.body.appendChild(float);
-        setTimeout(() => float.remove(), 800);
+        if (Game.data.tokens < 10) return alert("Yetersiz Jeton");
+        Game.data.tokens -= 10;
+        if(type === 'move') this.moves += 5;
+        Game.ui.updateHUD(); Game.ui.toggleBoostDrawer();
     }
     
     restartLevel() { this.initLevel(Game.data.level); }
 }
 
 class UIManager {
-    constructor() {
-        this.overlayMain = document.getElementById('overlay-main');
-        this.boostDrawer = document.getElementById('boost-drawer');
+    constructor() { this.overlayMain = document.getElementById('overlay-main'); this.boostDrawer = document.getElementById('boost-drawer'); }
+    updateLevelInfo(lvl, moves, goals) { document.getElementById('level-display').textContent = 'SEVİYE ' + lvl; document.getElementById('moves-display').textContent = moves; document.getElementById('score-display').textContent = '0'; document.getElementById('token-count').textContent = Game.data.tokens; this.renderGoals(goals); }
+    renderGoals(goals) {
+        const container = document.getElementById('goal-container'); container.innerHTML = '';
+        goals.forEach(g => {
+            const div = document.createElement('div'); div.className = 'goal-item'; div.id = `goal-${g.id}`;
+            let iconHtml = '';
+            if(g.type === 'score') iconHtml = '🏆'; 
+            else if(g.type === 'collect') iconHtml = `<div class="mini-tile" style="background:${CONSTANTS.COLORS[g.colorId]}"></div>`;
+            else if(g.type === 'cracks') iconHtml = `<div class="crack-icon"></div>`;
+            div.innerHTML = `<div style="display:flex; align-items:center; gap:5px">${iconHtml}</div> <span class="goal-val">${g.current}</span>`;
+            container.appendChild(div);
+        });
     }
-
-    updateLevelInfo(lvl, moves, goal, twist) {
-        document.getElementById('level-display').textContent = 'SEVİYE ' + lvl;
-        document.getElementById('moves-display').textContent = moves;
-        document.getElementById('score-display').textContent = '0';
-        document.getElementById('token-count').textContent = Game.data.tokens;
-        
-        const goalContainer = document.getElementById('goal-container');
-        goalContainer.innerHTML = '';
-        if (goal.score) {
-            goalContainer.innerHTML = `<div>${goal.score} PUAN</div>`;
-        } else {
-            goalContainer.innerHTML = `
-                <div class="goal-item">
-                    <div class="mini-tile" style="background: ${CONSTANTS.COLORS[goal.color]}"></div>
-                    <span>x ${goal.count}</span>
-                </div>`;
-        }
-
-        const twistPanel = document.getElementById('twist-panel');
-        if (twist) {
-            twistPanel.style.display = 'block';
-            document.getElementById('twist-desc').textContent = twist.desc;
-        } else {
-            twistPanel.style.display = 'none';
-        }
-    }
-
     updateHUD() {
-        document.getElementById('moves-display').textContent = Game.logic.moves;
-        document.getElementById('score-display').textContent = Game.logic.score;
-        document.getElementById('token-count').textContent = Game.data.tokens;
-        
-        const goal = Game.logic.goals;
-        if (goal.color !== undefined) {
-             document.querySelector('.goal-item span').textContent = `x ${goal.count}`;
-        }
+        document.getElementById('moves-display').textContent = Game.logic.moves; document.getElementById('score-display').textContent = Game.logic.score; document.getElementById('token-count').textContent = Game.data.tokens;
+        Game.logic.activeGoals.forEach(g => { const el = document.querySelector(`#goal-${g.id}`); if(el) { el.querySelector('.goal-val').textContent = g.current; if(g.isMet) el.classList.add('done'); } });
     }
-
+    showFloatText(text, el) { if(!el) return; const rect = el.getBoundingClientRect(); const float = document.createElement('div'); float.className = 'float-text'; float.textContent = text; float.style.left = rect.left + 'px'; float.style.top = rect.top + 'px'; document.body.appendChild(float); setTimeout(() => float.remove(), 800); }
+    
     showLevelComplete() {
+        // LEAGUE INTEGRATION: Add score to league on win
+        Game.league.addScore(Game.logic.score);
+        
         this.overlayMain.classList.add('active');
         document.getElementById('overlay-title').textContent = "BAŞARDIN!";
         document.getElementById('overlay-title').className = "win-title";
-        document.getElementById('overlay-msg').textContent = "+10 Jeton Kazandın";
-        
-        Game.data.tokens += 10;
-        Game.data.level++;
-        Game.data.save();
-
-        document.getElementById('overlay-buttons').innerHTML = `
-            <button class="btn" onclick="Game.logic.initLevel(${Game.data.level})">SONRAKİ SEVİYE</button>
-        `;
+        document.getElementById('overlay-msg').textContent = `+10 Jeton & +${Game.logic.score} Lig Puanı`;
+        Game.data.tokens += 10; Game.data.level++; Game.data.save();
+        document.getElementById('overlay-buttons').innerHTML = `<button class="btn" onclick="Game.logic.initLevel(${Game.data.level})">DEVAM ET</button>`;
     }
 
     showGameOver() {
-        this.overlayMain.classList.add('active');
-        document.getElementById('overlay-title').textContent = "HAMLE BİTTİ";
-        document.getElementById('overlay-title').className = "lose-title";
-        document.getElementById('overlay-msg').textContent = "Pes etmek yok!";
-        
-        document.getElementById('overlay-buttons').innerHTML = `
-            <button class="btn btn-boost" onclick="Game.logic.useBooster('move'); Game.ui.closeOverlays()">+5 HAMLE (10 Jeton)</button>
-            <button class="btn" style="margin-top:10px" onclick="Game.logic.initLevel(${Game.data.level})">TEKRAR DENE</button>
-        `;
+        this.overlayMain.classList.add('active'); document.getElementById('overlay-title').textContent = "BİTTİ!"; document.getElementById('overlay-title').className = "lose-title"; document.getElementById('overlay-msg').textContent = "";
+        document.getElementById('overlay-buttons').innerHTML = `<button class="btn btn-boost" onclick="Game.logic.moves+=5; Game.ui.closeOverlays();">+5 HAMLE (10 Jeton)</button><button class="btn btn-secondary" onclick="Game.logic.restartLevel()">TEKRAR DENE</button>`;
     }
 
     closeOverlays() { this.overlayMain.classList.remove('active'); }
     toggleBoostDrawer() { this.boostDrawer.classList.toggle('open'); }
     toggleSettings() { document.getElementById('overlay-settings').classList.add('active'); }
-    
-    showHelp() {
-        alert("3 Aynı rengi yanyana getir.\nKaydırarak hareket ettir.\nHedefi tamamla!");
+    showHelp() { alert("Hedefleri tamamla!\nBuz kırmak için üstünde eşleştirme yap."); }
+}
+
+class InputController {
+    constructor(logic) { this.logic = logic; this.isDragging = false; }
+    attach(el) {
+        const start = (x, y, t) => { if(this.logic.isProcessing) return; const tile = t.closest('.tile'); if(!tile) return; this.startTile = { r: +tile.dataset.r, c: +tile.dataset.c }; this.startX = x; this.startY = y; this.isDragging = true; };
+        const move = (e) => { if(this.isDragging) e.preventDefault(); };
+        const end = (x, y) => {
+            if(!this.isDragging) return; this.isDragging = false; const dx = x - this.startX, dy = y - this.startY; if(Math.abs(dx) < 30 && Math.abs(dy) < 30) return;
+            let tr = this.startTile.r, tc = this.startTile.c; if(Math.abs(dx) > Math.abs(dy)) { dx > 0 ? tc++ : tc--; } else { dy > 0 ? tr++ : tr--; }
+            if(tr >= 0 && tr < 8 && tc >= 0 && tc < 8) { this.logic.attemptSwap(this.startTile, {r:tr, c:tc}); }
+        };
+        el.addEventListener('mousedown', e => start(e.clientX, e.clientY, e.target)); window.addEventListener('mouseup', e => end(e.clientX, e.clientY));
+        el.addEventListener('touchstart', e => start(e.touches[0].clientX, e.touches[0].clientY, e.target), {passive: false}); el.addEventListener('touchmove', e => move(e), {passive: false}); el.addEventListener('touchend', e => end(e.changedTouches[0].clientX, e.changedTouches[0].clientY));
     }
 }
 
-const Game = {
-    data: new GameData(),
-    audio: new AudioController(),
-    logic: new GameLogic(),
-    ui: new UIManager()
+// Init
+const data = new GameData();
+const Game = { 
+    data: data, 
+    audio: new AudioController(), 
+    logic: new GameLogic(), 
+    ui: new UIManager(),
+    league: new LeagueManager(data) // Pass data to league
 };
-
 window.onload = () => {
-    Game.logic.input.attach(document.getElementById('grid'));
+    Game.league.checkWeeklyReset(); // Check date on load
     Game.logic.initLevel(Game.data.level);
 };
 
